@@ -1,0 +1,89 @@
+import 'package:dio/dio.dart';
+import '../../domain/app_failure.dart';
+import '../../domain/inventory/inventory.dart';
+import '../api/api_client.dart';
+
+class ApiInventoryRepository implements InventoryRepository {
+  ApiInventoryRepository(this.api);
+  final ApiClient api;
+  Future<T> _request<T>(Future<T> Function() action) async {
+    try {
+      return await action();
+    } on DioException catch (e) {
+      throw AppFailure(apiErrorMessage(e));
+    } on FormatException {
+      throw const AppFailure('Réponse du serveur invalide.');
+    } on TypeError {
+      throw const AppFailure('Réponse du serveur invalide.');
+    }
+  }
+
+  @override
+  Future<InventoryPage> list({int page = 1}) => _request(() async {
+    final body = (await api.dio.get<Map<String, dynamic>>(
+      'inventory',
+      queryParameters: {'page': page},
+    )).data!;
+    return InventoryPage(
+      (body['data'] as List).map((dynamic raw) {
+        final row = raw as Map<String, dynamic>;
+        final quantity = row['quantity'] as String,
+            threshold = row['reorder_level'] as String;
+        if (quantityMilli(quantity) == null ||
+            quantityMilli(threshold) == null) {
+          throw const FormatException();
+        }
+        return StockProduct(
+          row['id'] as String,
+          row['sku'] as String,
+          row['name'] as String,
+          row['unit'] as String,
+          row['cost_centimes'] as int,
+          threshold,
+          quantity,
+          row['active'] as bool,
+          row['version'] as int,
+        );
+      }).toList(),
+      body['total'] as int,
+      body['has_more'] as bool,
+    );
+  });
+  @override
+  Future<void> save(ProductDraft draft, {StockProduct? product}) =>
+      _request(() async {
+        final body = <String, dynamic>{
+          'sku': draft.sku,
+          'name': draft.name,
+          'unit': draft.unit,
+          'cost_centimes': draft.cost,
+          'reorder_level': draft.threshold,
+          'active': draft.active,
+        };
+        if (product == null) {
+          await api.dio.post<dynamic>('inventory', data: body);
+        } else {
+          await api.dio.patch<dynamic>(
+            'inventory/${product.id}',
+            data: {...body, 'version': product.version},
+          );
+        }
+      });
+  @override
+  Future<void> adjust(
+    StockProduct product,
+    String quantity,
+    String reason,
+    String requestId,
+  ) => _request(() async {
+    await api.dio.post<dynamic>(
+      'inventory/adjustments',
+      data: {
+        'product_id': product.id,
+        'quantity': quantity,
+        'reason': reason,
+        'request_id': requestId,
+      },
+    );
+  });
+}

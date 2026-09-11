@@ -1,0 +1,142 @@
+-- Phase 1 foundation. Complex mutations intentionally have no grants until guarded commands exist.
+create schema if not exists private;
+revoke all on schema private from public;
+grant usage on schema private to authenticated;
+create function private.touch_updated_at() returns trigger language plpgsql set search_path = '' as $$ begin new.updated_at=now(); return new; end $$;
+create table public.profiles (id uuid primary key references auth.users(id) on delete cascade, full_name text not null, role text not null check(role in ('ADMIN','USER')), active boolean not null default true, created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+alter table public.profiles enable row level security;
+revoke all on public.profiles from anon, authenticated;
+grant select on public.profiles to authenticated;
+create trigger touch_updated_at before update on public.profiles for each row execute function private.touch_updated_at();
+create table public.clients (id uuid primary key default gen_random_uuid(), full_name text not null, phone text, email text, birth_date date, created_by uuid references public.profiles(id), deleted_at timestamptz, created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+alter table public.clients enable row level security;
+revoke all on public.clients from anon, authenticated;
+grant select on public.clients to authenticated;
+create trigger touch_updated_at before update on public.clients for each row execute function private.touch_updated_at();
+create table public.practitioners (id uuid primary key default gen_random_uuid(), full_name text not null, profile_id uuid references public.profiles(id), specialty text, active boolean not null default true, deleted_at timestamptz, created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+alter table public.practitioners enable row level security;
+revoke all on public.practitioners from anon, authenticated;
+grant select on public.practitioners to authenticated;
+create trigger touch_updated_at before update on public.practitioners for each row execute function private.touch_updated_at();
+create table public.practitioner_schedules (id uuid primary key default gen_random_uuid(), practitioner_id uuid not null references public.practitioners(id), weekday smallint not null check(weekday between 1 and 7), starts_at time not null, ends_at time not null, check(ends_at > starts_at), created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+alter table public.practitioner_schedules enable row level security;
+revoke all on public.practitioner_schedules from anon, authenticated;
+grant select on public.practitioner_schedules to authenticated;
+create trigger touch_updated_at before update on public.practitioner_schedules for each row execute function private.touch_updated_at();
+create table public.service_categories (id uuid primary key default gen_random_uuid(), name text not null, active boolean not null default true, deleted_at timestamptz, created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+alter table public.service_categories enable row level security;
+revoke all on public.service_categories from anon, authenticated;
+grant select on public.service_categories to authenticated;
+create trigger touch_updated_at before update on public.service_categories for each row execute function private.touch_updated_at();
+create table public.services (id uuid primary key default gen_random_uuid(), category_id uuid references public.service_categories(id), name text not null, description text, duration_minutes integer not null check(duration_minutes>0), price_centimes integer not null check(price_centimes>=0), active boolean not null default true, deleted_at timestamptz, created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+alter table public.services enable row level security;
+revoke all on public.services from anon, authenticated;
+grant select on public.services to authenticated;
+create trigger touch_updated_at before update on public.services for each row execute function private.touch_updated_at();
+create table public.appointments (id uuid primary key default gen_random_uuid(), client_id uuid not null references public.clients(id), practitioner_id uuid references public.practitioners(id), starts_at timestamptz not null, ends_at timestamptz not null, source text not null check(source in ('MANUAL','WEBSITE')), status text not null default 'NEW' check(status in ('NEW','PENDING','CONFIRMED','IN_PROGRESS','COMPLETED','CANCELLED','NO_SHOW')), created_by uuid references public.profiles(id), notes text, external_provider text, external_id text, external_updated_at timestamptz, deleted_at timestamptz, check(ends_at>starts_at), check(status not in ('CONFIRMED','IN_PROGRESS','COMPLETED') or practitioner_id is not null), check((external_provider is null)=(external_id is null)), unique(external_provider,external_id), created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+alter table public.appointments enable row level security;
+revoke all on public.appointments from anon, authenticated;
+grant select on public.appointments to authenticated;
+create trigger touch_updated_at before update on public.appointments for each row execute function private.touch_updated_at();
+create table public.appointment_services (id uuid primary key default gen_random_uuid(), appointment_id uuid not null references public.appointments(id), service_id uuid not null references public.services(id), service_name text not null, duration_minutes integer not null check(duration_minutes>0), price_centimes integer not null check(price_centimes>=0), quantity integer not null default 1 check(quantity>0), created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+alter table public.appointment_services enable row level security;
+revoke all on public.appointment_services from anon, authenticated;
+grant select on public.appointment_services to authenticated;
+create trigger touch_updated_at before update on public.appointment_services for each row execute function private.touch_updated_at();
+create table public.payments (id uuid primary key default gen_random_uuid(), appointment_id uuid not null references public.appointments(id), recorded_by uuid not null references public.profiles(id), amount_centimes integer not null check(amount_centimes>0), currency text not null default 'MAD' check(currency='MAD'), method text not null check(method in ('CASH','CARD','TRANSFER')), idempotency_key uuid not null unique, paid_at timestamptz not null default now(), created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+alter table public.payments enable row level security;
+revoke all on public.payments from anon, authenticated;
+grant select on public.payments to authenticated;
+create trigger touch_updated_at before update on public.payments for each row execute function private.touch_updated_at();
+create table public.expenses (id uuid primary key default gen_random_uuid(), description text not null, category text not null, amount_centimes integer not null check(amount_centimes>0), spent_on date not null, recorded_by uuid not null references public.profiles(id), voided_at timestamptz, created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+alter table public.expenses enable row level security;
+revoke all on public.expenses from anon, authenticated;
+grant select on public.expenses to authenticated;
+create trigger touch_updated_at before update on public.expenses for each row execute function private.touch_updated_at();
+create table public.products (id uuid primary key default gen_random_uuid(), sku text not null unique, name text not null, unit text not null, cost_centimes integer not null check(cost_centimes>=0), reorder_level numeric(12,3) not null default 0 check(reorder_level>=0), active boolean not null default true, deleted_at timestamptz, created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+alter table public.products enable row level security;
+revoke all on public.products from anon, authenticated;
+grant select on public.products to authenticated;
+create trigger touch_updated_at before update on public.products for each row execute function private.touch_updated_at();
+create table public.inventory_transactions (id uuid primary key default gen_random_uuid(), product_id uuid not null references public.products(id), recorded_by uuid not null references public.profiles(id), quantity numeric(12,3) not null check(quantity<>0), reason text not null, appointment_id uuid references public.appointments(id), created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+alter table public.inventory_transactions enable row level security;
+revoke all on public.inventory_transactions from anon, authenticated;
+grant select on public.inventory_transactions to authenticated;
+create trigger touch_updated_at before update on public.inventory_transactions for each row execute function private.touch_updated_at();
+create table public.notifications (id uuid primary key default gen_random_uuid(), recipient_id uuid not null references public.profiles(id), type text not null, appointment_id uuid references public.appointments(id), payload jsonb not null default '{}'::jsonb, read_at timestamptz, event_key text, unique(recipient_id,event_key), created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+alter table public.notifications enable row level security;
+revoke all on public.notifications from anon, authenticated;
+grant select on public.notifications to authenticated;
+create trigger touch_updated_at before update on public.notifications for each row execute function private.touch_updated_at();
+create table public.activity_logs (id uuid primary key default gen_random_uuid(), actor_id uuid references public.profiles(id), action text not null, entity_type text not null, entity_id uuid, request_id uuid, metadata jsonb not null default '{}'::jsonb, created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+alter table public.activity_logs enable row level security;
+revoke all on public.activity_logs from anon, authenticated;
+grant select on public.activity_logs to authenticated;
+create trigger touch_updated_at before update on public.activity_logs for each row execute function private.touch_updated_at();
+create table public.settings (id uuid primary key default gen_random_uuid(), key text not null unique, category text not null, value jsonb not null, updated_by uuid references public.profiles(id), created_at timestamptz not null default now(), updated_at timestamptz not null default now());
+alter table public.settings enable row level security;
+revoke all on public.settings from anon, authenticated;
+grant select on public.settings to authenticated;
+create trigger touch_updated_at before update on public.settings for each row execute function private.touch_updated_at();
+
+create function private.current_role() returns text language sql stable security definer set search_path = '' as $$
+ select p.role from public.profiles p where p.id=auth.uid() and p.active
+ and exists(select 1 from auth.sessions s where s.user_id=p.id and s.id::text=auth.jwt()->>'session_id')
+$$;
+revoke all on function private.current_role() from public;
+grant execute on function private.current_role() to authenticated;
+create policy profile_read on public.profiles for select to authenticated using(private.current_role()='ADMIN' or (id=auth.uid() and private.current_role()='USER'));
+create policy read_allowed on public.clients for select to authenticated using(private.current_role() is not null);
+create policy read_allowed on public.practitioners for select to authenticated using(private.current_role() is not null);
+create policy read_allowed on public.practitioner_schedules for select to authenticated using(private.current_role() is not null);
+create policy read_allowed on public.service_categories for select to authenticated using(private.current_role() is not null);
+create policy read_allowed on public.services for select to authenticated using(private.current_role() is not null);
+create policy read_allowed on public.appointments for select to authenticated using(private.current_role() is not null);
+create policy read_allowed on public.appointment_services for select to authenticated using(private.current_role() is not null);
+create policy read_allowed on public.payments for select to authenticated using(private.current_role()='ADMIN');
+create policy read_allowed on public.expenses for select to authenticated using(private.current_role()='ADMIN');
+create policy read_allowed on public.products for select to authenticated using(private.current_role()='ADMIN');
+create policy read_allowed on public.inventory_transactions for select to authenticated using(private.current_role()='ADMIN');
+create policy read_allowed on public.notifications for select to authenticated using(private.current_role() is not null and recipient_id=auth.uid());
+create policy read_allowed on public.activity_logs for select to authenticated using(private.current_role()='ADMIN');
+create policy read_allowed on public.settings for select to authenticated using(private.current_role()='ADMIN');
+
+grant insert(full_name,phone,email,birth_date,created_by) on public.clients to authenticated;
+grant update(full_name,phone,email,birth_date) on public.clients to authenticated;
+create policy client_insert on public.clients for insert to authenticated with check(private.current_role() is not null and created_by=auth.uid() and deleted_at is null);
+create policy client_update on public.clients for update to authenticated using(private.current_role() is not null and deleted_at is null) with check(private.current_role() is not null and deleted_at is null);
+grant update(read_at) on public.notifications to authenticated;
+create policy notification_read on public.notifications for update to authenticated using(private.current_role() is not null and recipient_id=auth.uid()) with check(recipient_id=auth.uid());
+create index appointments_starts_at_idx on public.appointments(starts_at);
+create index appointments_client_idx on public.appointments(client_id);
+create index appointments_practitioner_idx on public.appointments(practitioner_id,starts_at);
+create index appointment_services_appointment_idx on public.appointment_services(appointment_id);
+create index payments_appointment_idx on public.payments(appointment_id);
+create index schedules_practitioner_idx on public.practitioner_schedules(practitioner_id,weekday);
+create index notifications_recipient_idx on public.notifications(recipient_id,created_at desc);
+create index inventory_product_idx on public.inventory_transactions(product_id,created_at);
+create index activity_created_idx on public.activity_logs(created_at desc);
+create table private.auth_limits (key text primary key, window_start timestamptz not null, attempts integer not null);
+create function public.consume_auth_limit(bucket_key text, maximum integer) returns boolean language plpgsql security definer set search_path = '' as $$
+declare count_now integer;
+begin
+ delete from private.auth_limits where window_start < now()-interval '2 minutes';
+ insert into private.auth_limits as l values(bucket_key,date_trunc('minute',now()),1)
+ on conflict(key) do update set attempts=case when l.window_start=date_trunc('minute',now()) then l.attempts+1 else 1 end, window_start=date_trunc('minute',now()) returning attempts into count_now;
+ return count_now<=maximum;
+end $$;
+revoke all on function public.consume_auth_limit(text,integer) from public,anon,authenticated;
+grant execute on function public.consume_auth_limit(text,integer) to service_role;
+
+create function public.archive_client(client_id uuid) returns boolean language plpgsql security definer set search_path = '' as $$
+begin
+ if private.current_role() is distinct from 'ADMIN' then raise insufficient_privilege; end if;
+ update public.clients set deleted_at=now() where id=client_id and deleted_at is null;
+ if not found then return false; end if;
+ insert into public.activity_logs(actor_id,action,entity_type,entity_id) values(auth.uid(),'ARCHIVE','clients',client_id);
+ return true;
+end $$;
+revoke all on function public.archive_client(uuid) from public,anon;
+grant execute on function public.archive_client(uuid) to authenticated;
+
+grant all on all tables in schema public to service_role;

@@ -1,0 +1,11 @@
+# Phase 6 — inventory adjustment foundation
+
+Apply migration 015 after 001–014. POST `/api/v1/inventory/adjustments` accepts `product_id`, `quantity` as a signed decimal **string** with up to three decimal places, a 3–500 character `reason`, and UUID `request_id`. Positive quantities receive stock; negative quantities consume or correct it. The product's unit determines what the quantity represents.
+
+Active ADMIN access is checked in HTTP and SQL. USER receives 403. The database derives the recorder, locks the adjustment command, rejects insufficient stock and inactive products, and appends a movement and activity log atomically. Direct authenticated table mutations remain denied. Corrections require a new movement; historical movements are retained.
+
+Retries with the same actor, key and payload return the original movement. Reusing a key with different data returns 409. Missing products return 404. Quantity precision is validated before storage to avoid implicit rounding. This command does not create an expense or automatically consume appointment supplies.
+
+Migrations 016–017 add GET /api/v1/inventory and GET /api/v1/inventory/{id}/history (50 rows per page, full-ledger quantity as decimal text), POST /api/v1/inventory and PATCH /api/v1/inventory/{id}. Products use SKU, name, unit, integer MAD cost_centimes, decimal-string reorder_level and active. PATCH requires the reviewed version. Products can be made inactive; historical units cannot be changed after a movement. Duplicate SKU returns 409. Creation retries must refresh by SKU after an uncertain response; stock adjustments remain separately idempotent. Flutter ADMIN inventory now supports paginated listing, create/edit/inactive products and stock adjustments with preserved retry keys. The Figma Inventory.tsx was inspected; existing tokens, cards and sheets are reused. Aggregate summary/filter controls, supplier/category/sale-price fields and movement history presentation remain pending. Tests run against local PGlite; live Supabase and concurrent multi-connection validation remain pending.
+
+Validation: 88 server tests passed after migrations 016–017. The inventory Flutter increment passes 72 total tests with clean analysis.

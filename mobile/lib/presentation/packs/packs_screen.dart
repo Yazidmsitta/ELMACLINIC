@@ -338,28 +338,29 @@ class _PackEditorState extends State<PackEditor> {
                       child: Row(
                         children: [
                           Expanded(child: Text(s.name)),
-                          IconButton(
-                            onPressed: _busy || !_items.containsKey(s.id)
+                          DropdownButton<int>(
+                            value: _items[s.id] ?? 0,
+                            underline: const SizedBox.shrink(),
+                            onChanged: _busy
                                 ? null
-                                : () => setState(() {
-                                    final n = _items[s.id]!;
-                                    if (n == 1) {
+                                : (sessions) => setState(() {
+                                    if (sessions == null || sessions == 0) {
                                       _items.remove(s.id);
                                     } else {
-                                      _items[s.id] = n - 1;
+                                      _items[s.id] = sessions;
                                     }
                                   }),
-                            icon: const Text('−'),
-                          ),
-                          Text('${_items[s.id] ?? 0}'),
-                          IconButton(
-                            onPressed: _busy || (_items[s.id] ?? 0) >= 100
-                                ? null
-                                : () => setState(
-                                    () =>
-                                        _items[s.id] = (_items[s.id] ?? 0) + 1,
-                                  ),
-                            icon: const ElmaIcon('Plus'),
+                            items: [
+                              const DropdownMenuItem(
+                                value: 0,
+                                child: Text('Ajouter'),
+                              ),
+                              for (var sessions = 1; sessions <= 100; sessions++)
+                                DropdownMenuItem(
+                                  value: sessions,
+                                  child: Text('$sessions séance(s)'),
+                                ),
+                            ],
                           ),
                         ],
                       ),

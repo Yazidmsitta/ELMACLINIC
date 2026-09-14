@@ -62,7 +62,7 @@ abstract interface class CatalogRepository {
     String search = '',
     String? categoryId,
   });
-  Future<void> save(
+  Future<String> save(
     CatalogKind kind,
     CatalogEntry entry, {
     required bool creating,

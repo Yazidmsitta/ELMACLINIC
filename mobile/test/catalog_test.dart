@@ -46,13 +46,14 @@ class FakeCatalog implements CatalogRepository {
   }
 
   @override
-  Future<void> save(
+  Future<String> save(
     CatalogKind kind,
     CatalogEntry entry, {
     required bool creating,
   }) async {
     if (failSave) throw const AppFailure('Enregistrement indisponible.');
     saved = entry;
+    return entry.id.isEmpty ? 'created' : entry.id;
   }
 
   @override

@@ -1,3 +1,4 @@
+import '../widgets/image_field.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../domain/app_failure.dart';
@@ -22,6 +23,8 @@ class EntrySheet extends StatefulWidget {
 }
 
 class _EntrySheetState extends State<EntrySheet> {
+  DraftImage? _image;
+  String? _savedId;
   final _form = GlobalKey<FormState>();
   final _fields = <String, TextEditingController>{};
   bool _saving = false, _active = true;
@@ -84,7 +87,7 @@ class _EntrySheetState extends State<EntrySheet> {
     });
     try {
       final birth = _value('birth');
-      await widget.repository.save(
+      _savedId ??= await widget.repository.save(
         widget.kind,
         CatalogEntry(
           id: widget.entry?.id ?? '',
@@ -108,9 +111,10 @@ class _EntrySheetState extends State<EntrySheet> {
         ),
         creating: widget.entry == null,
       );
+      if (_image != null) await widget.repository.uploadImage(_savedId!, _image!.bytes, _image!.mime);
       if (mounted) Navigator.pop(context, true);
     } catch (error) {
-      if (mounted) setState(() => _error = friendlyError(error));
+      if (mounted) setState(() => _error = _savedId != null ? 'Fiche enregistrée, mais photo non envoyée. Réessayez pour envoyer la photo.' : friendlyError(error));
     } finally {
       if (mounted) setState(() => _saving = false);
     }
@@ -126,7 +130,7 @@ class _EntrySheetState extends State<EntrySheet> {
     padding: const EdgeInsets.only(bottom: 14),
     child: TextFormField(
       controller: _fields[key],
-      enabled: !_saving,
+      enabled: !_saving && _savedId == null,
       keyboardType: keyboard,
       maxLength: max,
       decoration: InputDecoration(labelText: label, counterText: ''),
@@ -182,6 +186,7 @@ class _EntrySheetState extends State<EntrySheet> {
                     ],
                   ),
                   const SizedBox(height: 20),
+                  if (widget.kind == CatalogKind.services) ImageField(enabled: !_saving, onChanged: (image) => _image = image, existingUrl: widget.entry?.imageUrl),
                   _field(
                     'name',
                     widget.kind == CatalogKind.clients ||

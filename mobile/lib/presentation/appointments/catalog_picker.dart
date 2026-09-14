@@ -267,7 +267,7 @@ class _CatalogPickerState extends State<CatalogPicker> {
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: widget.kind == CatalogKind.services
-                      ? const ElmaIcon('Tag')
+                      ? ServicePickerImage(entry: entry)
                       : Text(
                           entry.name
                               .split(RegExp(r'\s+'))
@@ -314,4 +314,61 @@ class _CatalogPickerState extends State<CatalogPicker> {
       ],
     ],
   );
+}
+
+class ServicePickerImage extends StatelessWidget {
+  const ServicePickerImage({super.key, required this.entry});
+  final CatalogEntry entry;
+  @override
+  Widget build(BuildContext context) {
+    final url = entry.imageUrl;
+    if (url == null) return const ElmaIcon('Tag');
+    return Semantics(
+      label: 'Voir la photo de ${entry.name}',
+      button: true,
+      child: InkWell(
+        onTap: () => showDialog<void>(
+          context: context,
+          builder: (context) => Dialog(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    entry.name,
+                    style: const TextStyle(fontWeight: FontWeight.w600),
+                  ),
+                  const SizedBox(height: 12),
+                  Flexible(
+                    child: Image.network(
+                      url,
+                      fit: BoxFit.contain,
+                      errorBuilder: (_, error, stack) => const Text(
+                        'Photo indisponible. Actualisez la liste.',
+                      ),
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: const Text('Fermer'),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(12),
+          child: Image.network(
+            url,
+            width: 40,
+            height: 40,
+            fit: BoxFit.cover,
+            errorBuilder: (_, error, stack) => const ElmaIcon('Tag'),
+          ),
+        ),
+      ),
+    );
+  }
 }

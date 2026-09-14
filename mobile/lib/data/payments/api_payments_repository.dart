@@ -10,6 +10,11 @@ class ApiPaymentsRepository implements PaymentsRepository {
     try {
       return await action();
     } on DioException catch (e) {
+      if (e.response?.statusCode == 409) {
+        throw const AppFailure(
+          'Paiement non enregistré : vérifiez le solde et le statut du rendez-vous avant de réessayer.',
+        );
+      }
       throw AppFailure(apiErrorMessage(e));
     } on TypeError {
       throw const AppFailure('Réponse du serveur invalide.');

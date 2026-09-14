@@ -147,6 +147,10 @@ class ApiClient {
 
 String apiErrorMessage(Object error) {
   if (error is DioException) {
+    if (error.response?.statusCode == 401 &&
+        error.requestOptions.path == 'auth/login') {
+      return 'Connexion refusée. Vérifiez votre adresse e-mail et votre mot de passe.';
+    }
     return switch (error.response?.statusCode) {
       401 => 'Votre session a expiré. Veuillez vous reconnecter.',
       403 => 'Vous ne disposez pas des autorisations nécessaires.',

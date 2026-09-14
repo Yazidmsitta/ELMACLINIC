@@ -11,6 +11,33 @@ class ApiAppointmentsRepository implements AppointmentsRepository {
     try {
       return await call();
     } on DioException catch (e) {
+      final body = e.response?.data;
+      final message = body is Map ? body['message'] : null;
+      const schedulingMessages = {
+        'Praticienne inactive ou introuvable.',
+        'Le rendez-vous doit être compris dans un créneau de travail.',
+        'La praticienne est absente sur ce créneau.',
+        'Ce créneau est déjà réservé.',
+        'Sélection de prestations invalide.',
+        'Client introuvable.',
+        'Choisissez un créneau futur.',
+        'Clé de requête déjà utilisée.',
+        'Le rendez-vous a été modifié. Actualisez la fiche.',
+        'Ce rendez-vous ne peut plus être déplacé.',
+        'Transition de statut interdite.',
+        'Ce rendez-vous n’a pas encore commencé.',
+        'Le tarif ou la durée a changé. Vérifiez le nouveau devis.',
+      };
+      if ([409, 422].contains(e.response?.statusCode) &&
+          message is String &&
+          schedulingMessages.contains(message)) {
+        throw AppFailure(message);
+      }
+      if (e.response?.statusCode == 409) {
+        throw const AppFailure(
+          'Ce rendez-vous est incompatible avec les disponibilités ou les données actuelles. Actualisez votre sélection.',
+        );
+      }
       throw AppFailure(apiErrorMessage(e));
     } on FormatException {
       throw const AppFailure('Réponse du serveur invalide.');

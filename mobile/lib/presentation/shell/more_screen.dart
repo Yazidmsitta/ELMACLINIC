@@ -25,6 +25,10 @@ class MoreScreen extends StatefulWidget {
     this.onExpenses,
     this.onInventory,
     this.onStaff,
+    this.onSettings,
+    this.onReports,
+    this.onActivity,
+    this.onPacks,
     this.onNotifications,
   });
   final AppUser user;
@@ -33,6 +37,10 @@ class MoreScreen extends StatefulWidget {
   final VoidCallback? onExpenses;
   final VoidCallback? onInventory;
   final VoidCallback? onStaff;
+  final VoidCallback? onSettings;
+  final VoidCallback? onReports;
+  final VoidCallback? onActivity;
+  final VoidCallback? onPacks;
   final VoidCallback? onNotifications;
   final Future<void> Function() onLogout;
   @override
@@ -72,6 +80,28 @@ class _MoreScreenState extends State<MoreScreen> {
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: () {
+          if (label == 'Packs' && widget.onPacks != null) {
+            widget.onPacks!();
+            return;
+          }
+          if (label == 'Journal d’activité' &&
+              widget.user.isAdmin &&
+              widget.onActivity != null) {
+            widget.onActivity!();
+            return;
+          }
+          if (label == 'Rapports' &&
+              widget.user.isAdmin &&
+              widget.onReports != null) {
+            widget.onReports!();
+            return;
+          }
+          if (label == 'Paramètres' &&
+              widget.user.isAdmin &&
+              widget.onSettings != null) {
+            widget.onSettings!();
+            return;
+          }
           if (label == 'Notifications' && widget.onNotifications != null) {
             widget.onNotifications!();
             return;
@@ -246,6 +276,12 @@ class _MoreScreenState extends State<MoreScreen> {
                 ),
               ),
               _label('Gestion'),
+              _entry(
+                'Packs',
+                'Prestations et séances',
+                'Grid',
+                ElmaColors.light,
+              ),
               _entry(
                 'Réservations en ligne',
                 'Demandes du site web',

@@ -330,6 +330,28 @@ class _AppointmentDetailState extends State<AppointmentDetail> {
                                   : null,
                             ),
                           ),
+                        if (a.status.next.isNotEmpty)
+                          const Padding(
+                            padding: EdgeInsets.only(top: 12, bottom: 12),
+                            child: Text(
+                              'Modifier le statut',
+                              style: TextStyle(fontWeight: FontWeight.w600),
+                            ),
+                          ),
+                        if ([
+                          AppointmentStatus.fresh,
+                          AppointmentStatus.pending,
+                        ].contains(a.status))
+                          const Padding(
+                            padding: EdgeInsets.only(bottom: 12),
+                            child: Text(
+                              'Confirmez le rendez-vous pour pouvoir encaisser un paiement.',
+                              style: TextStyle(
+                                fontSize: 12,
+                                color: ElmaColors.secondary,
+                              ),
+                            ),
+                          ),
                         for (final status in a.status.next.where(
                           (s) =>
                               ![

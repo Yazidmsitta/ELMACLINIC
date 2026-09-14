@@ -47,6 +47,28 @@ ResponseBody jsonBody(Object data, [int code = 200]) => ResponseBody.fromString(
 
 void main() {
   test(
+    'Rejected login shows credentials guidance without expiring a session',
+    () async {
+      final tokens = MemoryTokens();
+      final api = ApiClient(tokens);
+      var expired = false;
+      api.onUnauthorized = () => expired = true;
+      api.dio.httpClientAdapter = StubAdapter((_) => jsonBody({}, 401));
+      await expectLater(
+        ApiAuthRepository(api).login('admin@elmaclinic.test', 'incorrect'),
+        throwsA(
+          isA<AppFailure>().having(
+            (error) => error.message,
+            'message',
+            contains('Connexion refusée'),
+          ),
+        ),
+      );
+      expect(expired, false);
+      expect(tokens.value, isNull);
+    },
+  );
+  test(
     'Login stores token and uses backend role without sending a role',
     () async {
       final tokens = MemoryTokens();

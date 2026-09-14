@@ -1,3 +1,11 @@
+import '../packs/packs_screen.dart';
+import '../../domain/packs/packs.dart';
+import '../activity/activity_screen.dart';
+import '../../domain/activity/activity.dart';
+import '../../domain/reports/financial_report.dart';
+import '../reports/reports_screen.dart';
+import '../../domain/settings/clinic_settings.dart';
+import '../settings/clinic_settings_screen.dart';
 import '../../domain/notifications/notifications.dart';
 import '../notifications/notifications_screen.dart';
 import '../../domain/staff/staff.dart';
@@ -36,6 +44,10 @@ class AppShell extends StatefulWidget {
     this.expenses,
     this.inventory,
     this.staff,
+    this.settings,
+    this.reports,
+    this.activity,
+    this.packs,
     this.notifications,
   });
   final AuthController auth;
@@ -46,6 +58,10 @@ class AppShell extends StatefulWidget {
   final ExpensesRepository? expenses;
   final InventoryRepository? inventory;
   final StaffRepository? staff;
+  final ClinicSettingsRepository? settings;
+  final ReportsRepository? reports;
+  final ActivityRepository? activity;
+  final PacksRepository? packs;
   final NotificationsRepository? notifications;
   @override
   State<AppShell> createState() => _AppShellState();
@@ -213,6 +229,42 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                 MoreScreen(
                   user: user,
                   onLogout: widget.auth.logout,
+                  onPacks: widget.packs != null && widget.catalog != null
+                      ? () => Navigator.of(context).push<void>(
+                          MaterialPageRoute(
+                            builder: (_) => PacksScreen(
+                              repository: widget.packs!,
+                              catalog: widget.catalog!,
+                              isAdmin: user.isAdmin,
+                            ),
+                          ),
+                        )
+                      : null,
+                  onActivity: user.isAdmin && widget.activity != null
+                      ? () => Navigator.of(context).push<void>(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                ActivityScreen(repository: widget.activity!),
+                          ),
+                        )
+                      : null,
+                  onReports: user.isAdmin && widget.reports != null
+                      ? () => Navigator.of(context).push<void>(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                ReportsScreen(repository: widget.reports!),
+                          ),
+                        )
+                      : null,
+                  onSettings: user.isAdmin && widget.settings != null
+                      ? () => Navigator.of(context).push<void>(
+                          MaterialPageRoute(
+                            builder: (_) => ClinicSettingsScreen(
+                              repository: widget.settings!,
+                            ),
+                          ),
+                        )
+                      : null,
                   onNotifications: widget.notifications != null
                       ? () => Navigator.of(context).push<void>(
                           MaterialPageRoute(

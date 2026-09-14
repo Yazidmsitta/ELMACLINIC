@@ -112,12 +112,26 @@ class _PaymentSheetState extends State<PaymentSheet> {
               if (_loading) const Center(child: CircularProgressIndicator()),
               if (_balance != null) ...[
                 Text(
-                  'Solde : ${money(_balance!.remaining)}',
+                  'Crédit restant : ${money(_balance!.remaining)}',
                   style: const TextStyle(fontWeight: FontWeight.w600),
                 ),
                 Text(
                   'Déjà encaissé : ${money(_balance!.paid)}',
                   style: const TextStyle(color: ElmaColors.muted, fontSize: 12),
+                ),
+                const SizedBox(height: 12),
+                TextButton(
+                  onPressed: _busy || _key != null
+                      ? null
+                      : () => setState(
+                          () => _amount.text = (_balance!.remaining / 100)
+                              .toStringAsFixed(2),
+                        ),
+                  child: const Text('Payer la totalité'),
+                ),
+                const Text(
+                  'Pour laisser un crédit, saisissez un montant inférieur au solde. Le reste pourra être payé plus tard.',
+                  style: TextStyle(fontSize: 12, color: ElmaColors.secondary),
                 ),
                 const SizedBox(height: 20),
                 TextField(

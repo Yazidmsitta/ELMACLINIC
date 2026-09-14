@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 class StockProduct {
   const StockProduct(
     this.id,
@@ -37,8 +38,9 @@ class ProductDraft {
 }
 
 abstract interface class InventoryRepository {
+  Future<void> uploadImage(String id, Uint8List bytes, String mimeType);
   Future<InventoryPage> list({int page = 1});
-  Future<void> save(ProductDraft draft, {StockProduct? product});
+  Future<String> save(ProductDraft draft, {StockProduct? product});
   Future<void> adjust(
     StockProduct product,
     String quantity,

@@ -1,3 +1,11 @@
+import 'data/packs/api_packs_repository.dart';
+import 'domain/packs/packs.dart';
+import 'data/activity/api_activity_repository.dart';
+import 'domain/activity/activity.dart';
+import 'domain/reports/financial_report.dart';
+import 'data/reports/api_reports_repository.dart';
+import 'domain/settings/clinic_settings.dart';
+import 'data/settings/api_clinic_settings_repository.dart';
 import 'domain/notifications/notifications.dart';
 import 'data/notifications/api_notifications_repository.dart';
 import 'domain/staff/staff.dart';
@@ -45,6 +53,10 @@ Future<void> main() async {
       expenses: ApiExpensesRepository(api),
       inventory: ApiInventoryRepository(api),
       staff: ApiStaffRepository(api),
+      settings: ApiClinicSettingsRepository(api),
+      reports: ApiReportsRepository(api),
+      activity: ApiActivityRepository(api),
+      packs: ApiPacksRepository(api),
       notifications: ApiNotificationsRepository(api),
     ),
   );
@@ -63,6 +75,10 @@ class ElmaClinicApp extends StatelessWidget {
     this.expenses,
     this.inventory,
     this.staff,
+    this.settings,
+    this.reports,
+    this.activity,
+    this.packs,
     this.notifications,
   });
   final AuthController auth;
@@ -74,6 +90,10 @@ class ElmaClinicApp extends StatelessWidget {
   final ExpensesRepository? expenses;
   final InventoryRepository? inventory;
   final StaffRepository? staff;
+  final ClinicSettingsRepository? settings;
+  final ReportsRepository? reports;
+  final ActivityRepository? activity;
+  final PacksRepository? packs;
   final NotificationsRepository? notifications;
   @override
   Widget build(BuildContext context) => MaterialApp(
@@ -104,6 +124,10 @@ class ElmaClinicApp extends StatelessWidget {
                 expenses: expenses,
                 inventory: inventory,
                 staff: staff,
+                settings: settings,
+                reports: reports,
+                activity: activity,
+                packs: packs,
                 notifications: notifications,
               );
       },

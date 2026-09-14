@@ -127,7 +127,7 @@ class ApiCatalogRepository implements CatalogRepository {
     );
   });
   @override
-  Future<void> save(
+  Future<String> save(
     CatalogKind kind,
     CatalogEntry entry, {
     required bool creating,
@@ -157,9 +157,9 @@ class ApiCatalogRepository implements CatalogRepository {
       if (kind != CatalogKind.clients) 'active': entry.active,
     };
     if (creating) {
-      await api.dio.post<dynamic>(kind.path, data: body);
+      final response=await api.dio.post<Map<String,dynamic>>(kind.path,data:body); return (response.data!['data'] as Map<String,dynamic>)['id'] as String;
     } else {
-      await api.dio.patch<dynamic>('${kind.path}/${entry.id}', data: body);
+      await api.dio.patch<dynamic>('${kind.path}/${entry.id}', data: body); return entry.id;
     }
   });
   @override

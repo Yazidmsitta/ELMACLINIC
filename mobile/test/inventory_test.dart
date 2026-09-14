@@ -1,3 +1,4 @@
+import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:elmaclinic/domain/app_failure.dart';
@@ -22,7 +23,8 @@ class FakeInventory implements InventoryRepository {
   Future<InventoryPage> list({int page = 1}) async =>
       const InventoryPage([product], 1, false);
   @override
-  Future<void> save(ProductDraft draft, {StockProduct? product}) async {}
+  Future<String> save(ProductDraft draft, {StockProduct? product}) async => product?.id ?? 'created';
+  @override Future<void> uploadImage(String id,Uint8List bytes,String mimeType) async {}
   @override
   Future<void> adjust(
     StockProduct product,

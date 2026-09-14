@@ -57,7 +57,13 @@ void main() {
           'service',
         ], DateTime.utc(2030)),
       ),
-      throwsA(isA<AppFailure>()),
+      throwsA(
+        isA<AppFailure>().having(
+          (error) => error.message,
+          'message',
+          'Ce créneau est déjà réservé.',
+        ),
+      ),
     );
   });
   test('unknown appointment source fails closed', () async {

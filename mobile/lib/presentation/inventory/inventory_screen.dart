@@ -1,3 +1,4 @@
+import '../widgets/image_field.dart';
 import 'package:flutter/material.dart';
 import '../../domain/app_failure.dart';
 import '../../domain/inventory/inventory.dart';
@@ -227,6 +228,8 @@ class InventorySheet extends StatefulWidget {
 }
 
 class _InventorySheetState extends State<InventorySheet> {
+  DraftImage? _image;
+  String? _savedId;
   final _form = GlobalKey<FormState>();
   final _fields = <String, TextEditingController>{};
   final _key = bookingRequestId();
@@ -277,7 +280,7 @@ class _InventorySheetState extends State<InventorySheet> {
           _key,
         );
       } else {
-        await widget.repository.save(
+        _savedId ??= await widget.repository.save(
           ProductDraft(
             value('SKU'),
             value('Nom du produit'),
@@ -289,6 +292,7 @@ class _InventorySheetState extends State<InventorySheet> {
           product: widget.product,
         );
       }
+      if (!widget.adjust && _image != null) await widget.repository.uploadImage(_savedId!, _image!.bytes, _image!.mime);
       if (mounted) Navigator.of(context).pop();
     } catch (error) {
       if (mounted) setState(() => _error = friendlyError(error));
@@ -299,7 +303,7 @@ class _InventorySheetState extends State<InventorySheet> {
 
   @override
   Widget build(BuildContext context) {
-    final locked = _busy || (widget.adjust && _submitted);
+    final locked = _busy || _savedId != null || (widget.adjust && _submitted);
     final labels = widget.adjust
         ? ['Quantité à ajouter ou retirer', 'Motif']
         : [
@@ -353,6 +357,7 @@ class _InventorySheetState extends State<InventorySheet> {
                     Text(
                       'Stock actuel : ${widget.product!.quantity} ${widget.product!.unit}. Une quantité négative retire du stock.',
                     ),
+                  if (!widget.adjust) ImageField(enabled: !_busy, onChanged: (image) => _image = image),
                   for (final label in labels)
                     Padding(
                       padding: const EdgeInsets.only(top: 16),

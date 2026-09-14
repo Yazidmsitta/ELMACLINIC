@@ -42,7 +42,7 @@ npx supabase db reset
 npx supabase status
 ```
 
-`db reset` recreates the **local development database**. For a hosted development project, apply migrations in filename order through the SQL editor or Supabase migration workflow: `202609090001_foundation.sql` through `202609090008_availability_bookings.sql`. If Phase 3 is installed, apply only migrations 007–008; do not reset an existing database. Historical Laravel data migration is not included.
+`db reset` recreates the **local development database**. For a hosted development project, apply migrations in filename order through the SQL editor or Supabase migration workflow: `202609090001_foundation.sql` through `202609110023_settings_versions.sql`. If earlier phases are installed, apply only migrations not already applied; do not reset an existing database. Historical Laravel data migration is not included.
 
 On hosted Supabase, disable **Allow new users to sign up** and enable refresh-token rotation. Local configuration already disables signup. Each Auth user requires a matching active `profiles` row. User metadata cannot assign roles. Migration 005 creates the private `service-images` bucket and its read policy. Uploads pass through the ADMIN-only Next endpoint; Flutter receives signed URLs valid for five minutes. Refresh the list to renew URLs.
 

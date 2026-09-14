@@ -1,0 +1,17 @@
+mobile/build
+mobile/.dart_tool
+mobile/.flutter-plugins
+mobile/.flutter-plugins-dependencies
+mobile/.packages
+mobile/android/.gradle
+mobile/android/app/build
+server/node_modules
+server/.next
+server/.env
+server/.env.*
+!server/.env.example
+node_modules
+**/*.tsbuildinfo
+.git
+.github
+elmaclinic-preview

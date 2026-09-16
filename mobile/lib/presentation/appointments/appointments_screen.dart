@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../domain/appointments/appointments.dart';
 import '../../domain/catalog/catalog.dart';
+import '../../domain/packs/packs.dart';
 import '../../domain/app_failure.dart';
 import '../theme/app_theme.dart';
 import '../widgets/elma_widgets.dart';
@@ -16,11 +17,13 @@ class AppointmentsScreen extends StatefulWidget {
     super.key,
     required this.repository,
     required this.catalog,
+    this.packs,
     required this.isAdmin,
     this.initialDay,
   });
   final AppointmentsRepository repository;
   final CatalogRepository catalog;
+  final PacksRepository? packs;
   final bool isAdmin;
   final DateTime? initialDay;
   @override
@@ -115,6 +118,7 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
         builder: (_) => BookingWizard(
           repository: widget.repository,
           catalog: widget.catalog,
+          packs: widget.packs,
         ),
       ),
     );

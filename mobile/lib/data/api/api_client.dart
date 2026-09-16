@@ -147,6 +147,16 @@ class ApiClient {
 
 String apiErrorMessage(Object error) {
   if (error is DioException) {
+    final payload = error.response?.data;
+    if (payload is Map<String, dynamic> &&
+        payload['message'] is String &&
+        (payload['message'] as String).trim().isNotEmpty) {
+      return payload['message'] as String;
+    }
+    if (payload is Map && payload['message'] is String &&
+        (payload['message'] as String).trim().isNotEmpty) {
+      return payload['message'] as String;
+    }
     if (error.response?.statusCode == 401 &&
         error.requestOptions.path == 'auth/login') {
       return 'Connexion refusée. Vérifiez votre adresse e-mail et votre mot de passe.';

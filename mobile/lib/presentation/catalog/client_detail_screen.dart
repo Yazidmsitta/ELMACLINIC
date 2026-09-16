@@ -58,9 +58,27 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
 
   Future<void> _adjustPackSessions(ClientPackSummary pack, int delta) async {
     if (_adjustingPack != null) return;
+    if (delta == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aucune modification à enregistrer.')),
+      );
+      return;
+    }
+    if (pack.totalSessions <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ce pack n’a pas de séances achetées.')),
+      );
+      return;
+    }
     if (delta < 0 && pack.completedSessions <= 0) {
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Aucune séance à supprimer.')),
+      );
+      return;
+    }
+    if (delta > 0 && pack.remainingSessions <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Toutes les séances du pack sont déjà terminées.')),
       );
       return;
     }
@@ -274,12 +292,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed:
-                      _adjustingPack == null &&
-<<<<<<< HEAD
-                          pack.totalSessions > pack.completedSessions
-=======
-                          pack.completedSessions > 0
->>>>>>> 6379105 (Allow manual client pack session adjustments)
+                      _adjustingPack == null && pack.completedSessions > 0
                       ? () => _adjustPackSessions(pack, -1)
                       : null,
                   icon: _adjustingPack == pack.packId
@@ -289,11 +302,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.remove, size: 16),
-<<<<<<< HEAD
-                  label: const Text('Retirer'),
-=======
                   label: const Text('Supprimer'),
->>>>>>> 6379105 (Allow manual client pack session adjustments)
                 ),
               ),
               const SizedBox(width: 10),
@@ -303,11 +312,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                       ? () => _adjustPackSessions(pack, 1)
                       : null,
                   icon: const Icon(Icons.add, size: 16),
-<<<<<<< HEAD
-                  label: const Text('Ajouter'),
-=======
                   label: const Text('Ajouter faite'),
->>>>>>> 6379105 (Allow manual client pack session adjustments)
                 ),
               ),
             ],

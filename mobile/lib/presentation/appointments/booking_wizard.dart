@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import '../../domain/app_failure.dart';
 import '../../domain/appointments/appointments.dart';
 import '../../domain/catalog/catalog.dart';
+import '../../domain/packs/packs.dart';
 import '../theme/app_theme.dart';
 import '../widgets/elma_widgets.dart';
 import 'catalog_picker.dart';
@@ -14,11 +15,13 @@ class BookingWizard extends StatefulWidget {
     super.key,
     required this.repository,
     required this.catalog,
+    this.packs,
     this.websiteBooking,
     this.websiteRepository,
   });
   final AppointmentsRepository repository;
   final CatalogRepository catalog;
+  final PacksRepository? packs;
   final WebsiteBooking? websiteBooking;
   final WebsiteBookingsRepository? websiteRepository;
   @override

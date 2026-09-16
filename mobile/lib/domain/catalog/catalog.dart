@@ -49,7 +49,34 @@ class CatalogPage {
   final bool hasMore;
 }
 
+
+class ClientPackSummary {
+  const ClientPackSummary({
+    required this.packId,
+    required this.name,
+    required this.totalSessions,
+    required this.completedSessions,
+    required this.remainingSessions,
+  });
+  final String packId, name;
+  final int totalSessions, completedSessions, remainingSessions;
+  bool get completed => remainingSessions <= 0;
+}
+
+class ClientProfile {
+  const ClientProfile({
+    required this.client,
+    required this.today,
+    required this.history,
+    required this.packs,
+  });
+  final CatalogEntry client;
+  final List<Map<String, dynamic>> today, history;
+  final List<ClientPackSummary> packs;
+}
+
 abstract interface class CatalogRepository {
+  Future<ClientProfile> clientProfile(String id);
   Future<PractitionerAvailability> availability(String id);
   Future<void> saveAvailability(
     String id,

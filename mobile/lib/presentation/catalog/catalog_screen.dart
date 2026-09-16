@@ -2,12 +2,14 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../domain/app_failure.dart';
+import '../../domain/appointments/appointments.dart';
 import '../../domain/catalog/catalog.dart';
 import '../theme/app_theme.dart';
 import '../widgets/elma_widgets.dart';
 import 'entry_sheet.dart';
 import 'availability_sheet.dart';
 import 'photo_sheet.dart';
+import 'client_detail_screen.dart';
 
 class CatalogScreen extends StatefulWidget {
   const CatalogScreen({
@@ -15,10 +17,12 @@ class CatalogScreen extends StatefulWidget {
     required this.kind,
     required this.repository,
     required this.isAdmin,
+    this.appointments,
     this.standalone = false,
   });
   final CatalogKind kind;
   final CatalogRepository repository;
+  final AppointmentsRepository? appointments;
   final bool isAdmin, standalone;
   @override
   State<CatalogScreen> createState() => _CatalogScreenState();
@@ -173,6 +177,20 @@ class _CatalogScreenState extends State<CatalogScreen> {
     if (saved == true && mounted) await _load();
   }
 
+  Future<void> _openClient(CatalogEntry entry) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => ClientDetailScreen(
+          entry: entry,
+          repository: widget.repository,
+          appointments: widget.appointments,
+          isAdmin: widget.isAdmin,
+        ),
+      ),
+    );
+    if (mounted) await _load();
+  }
+
   void _availability(CatalogEntry entry) {
     showModalBottomSheet<bool>(
       context: context,
@@ -194,14 +212,17 @@ class _CatalogScreenState extends State<CatalogScreen> {
         : widget.kind == CatalogKind.practitioners
         ? entry.specialty
         : null;
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border.all(color: ElmaColors.border),
-        borderRadius: BorderRadius.circular(16),
-      ),
-      child: Column(
+    return InkWell(
+      borderRadius: BorderRadius.circular(16),
+      onTap: widget.kind == CatalogKind.clients ? () => _openClient(entry) : null,
+      child: Container(
+        margin: const EdgeInsets.only(bottom: 10),
+        decoration: BoxDecoration(
+          color: Colors.white,
+          border: Border.all(color: ElmaColors.border),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Column(
         children: [
           if (service && entry.imageUrl != null)
             ClipRRect(
@@ -354,6 +375,7 @@ class _CatalogScreenState extends State<CatalogScreen> {
             ),
           ],
         ],
+        ),
       ),
     );
   }

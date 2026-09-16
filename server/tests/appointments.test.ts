@@ -3,7 +3,7 @@ import { PGlite } from '@electric-sql/pglite';
 import { readFileSync,readdirSync } from 'node:fs';
 const db=new PGlite();
 const admin='00000000-0000-4000-8000-000000000001', user='00000000-0000-4000-8000-000000000002';
-let client:string,practitioner:string,service:string,start:string,appointment:string;
+let client:string,practitioner:string,service:string,pack:string,start:string,appointment:string;
 async function asUser(id=user) { await db.exec(`reset role;set request.jwt.claim.sub='${id}';set request.jwt.claims='{"session_id":"${id}"}';set role authenticated;`); }
 beforeAll(async () => {
   await db.exec(`create role anon;create role authenticated;create role service_role bypassrls;
@@ -20,6 +20,9 @@ beforeAll(async () => {
   client=(await db.query<{id:string}>("insert into clients(full_name) values('Client') returning id")).rows[0].id;
   practitioner=(await db.query<{id:string}>("insert into practitioners(full_name) values('Praticienne') returning id")).rows[0].id;
   service=(await db.query<{id:string}>("insert into services(name,duration_minutes,price_centimes) values('Soin',30,20000) returning id")).rows[0].id;
+  await db.exec('reset role');
+  pack=(await db.query<{id:string}>("insert into packs(name,price_centimes) values('Pack 8 séances',480000) returning id")).rows[0].id;
+  await db.query('insert into pack_items(pack_id,service_id,sessions) values($1,$2,8)',[pack,service]);
   await db.query("insert into practitioner_schedules(practitioner_id,weekday,starts_at,ends_at) select $1,d,'09:00','18:00' from generate_series(1,7) d",[practitioner]);
   start=(await db.query<{start:string}>("select (date_trunc('day',now())+interval '7 days 9 hours')::text as start")).rows[0].start;
   await asUser();
@@ -27,6 +30,9 @@ beforeAll(async () => {
 afterAll(async()=>{await db.close();});
 async function create(key:string,slot=start,amount=20000) {
   return db.query<{id:string}>('select create_manual_appointment($1,$2,$3,$4,$5,$6,$7,$8) as id',[client,practitioner,[service],slot,'Notes',key,amount,30]);
+}
+async function createCart(key:string,slot:string,serviceIds:string[]=[],packIds:string[]=[pack],amount=480000,duration=30) {
+  return db.query<{id:string}>('select create_manual_appointment_cart($1,$2,$3,$4,$5,$6,$7,$8,$9) as id',[client,practitioner,serviceIds,packIds,slot,'Notes',key,amount,duration]);
 }
 test('USER creates manual booking with authoritative price snapshots and idempotency',async()=>{
   const key='10000000-0000-4000-8000-000000000001';
@@ -43,6 +49,26 @@ test('competing bookings cannot reserve an occupied interval; boundary adjacency
   expect(result.every(r=>r.status==='rejected')).toBe(true);
   const adjacent=new Date(new Date(start).getTime()+30*60000).toISOString();
   expect((await create('10000000-0000-4000-8000-000000000004',adjacent)).rows[0].id).toBeTruthy();
+});
+test('pack booking uses the pack price while duration comes from included services',async()=>{
+  const slot=new Date(new Date(start).getTime()+24*3600000).toISOString();
+  const quote=(await db.query<{data:{total_centimes:number;duration_minutes:number;services:Array<Record<string,unknown>>}}>('select quote_appointment_cart($1,$2,$3,$4,$5) as data',[client,practitioner,[],[pack],slot])).rows[0].data;
+  expect(quote.total_centimes).toBe(480000);
+  expect(quote.duration_minutes).toBe(30);
+  expect(quote.services).toEqual([expect.objectContaining({name:'Pack 8 séances',price_centimes:480000,type:'PACK'})]);
+  const appointmentId=(await createCart('10000000-0000-4000-8000-000000000008',slot)).rows[0].id;
+  const details=(await db.query<{data:{total_centimes:number;services:Array<Record<string,unknown>>}}>('select appointment_details($1) as data',[appointmentId])).rows[0].data;
+  expect(details.total_centimes).toBe(480000);
+  expect(details.services).toEqual([expect.objectContaining({name:'Pack 8 séances',price_centimes:480000})]);
+});
+test('client profile exposes today appointments, history, and pack session status',async()=>{
+  const slot=new Date(new Date(start).getTime()+48*3600000).toISOString();
+  await db.exec('reset role');await db.query('update packs set total_sessions=8 where id=$1',[pack]);await asUser();
+  const appointmentId=(await createCart('10000000-0000-4000-8000-000000000009',slot)).rows[0].id;
+  await db.exec('reset role');await db.query("update appointments set status='COMPLETED' where id=$1",[appointmentId]);await asUser();
+  const profile=(await db.query<{data:{history:unknown[];packs:Array<{name:string;total_sessions:number;completed_sessions:number;remaining_sessions:number;status:string}>}}>('select client_profile($1) as data',[client])).rows[0].data;
+  expect(profile.history.length).toBeGreaterThan(0);
+  expect(profile.packs).toEqual([expect.objectContaining({name:'Pack 8 séances',total_sessions:16,completed_sessions:1,remaining_sessions:15,status:'EN_ATTENTE'})]);
 });
 test('USER cannot override prices; changed quote requires renewed confirmation',async()=>{
   const later=new Date(new Date(start).getTime()+2*3600000).toISOString();

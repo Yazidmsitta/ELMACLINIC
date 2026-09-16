@@ -8,6 +8,42 @@ class ApiCatalogRepository implements CatalogRepository {
   ApiCatalogRepository(this.api);
   final ApiClient api;
   @override
+  Future<ClientProfile> clientProfile(String id) => _request(() async {
+    final response = await api.dio.get<Map<String, dynamic>>(
+      'clients/$id/profile',
+    );
+    final data = response.data!['data'] as Map<String, dynamic>;
+    CatalogEntry client(Map<String, dynamic> row) => CatalogEntry(
+      id: row['id'] as String,
+      name: (row['full_name'] ?? row['name']) as String,
+      phone: row['phone'] as String?,
+      email: row['email'] as String?,
+      birthDate: row['birth_date'] as String?,
+    );
+    return ClientProfile(
+      client: client(data['client'] as Map<String, dynamic>),
+      today: ((data['today'] as List?) ?? const [])
+          .map((dynamic row) => row as Map<String, dynamic>)
+          .toList(growable: false),
+      history: ((data['history'] as List?) ?? const [])
+          .map((dynamic row) => row as Map<String, dynamic>)
+          .toList(growable: false),
+      packs: ((data['packs'] as List?) ?? const [])
+          .map((dynamic raw) {
+            final row = raw as Map<String, dynamic>;
+            return ClientPackSummary(
+              packId: row['pack_id'] as String,
+              name: row['name'] as String,
+              totalSessions: row['total_sessions'] as int,
+              completedSessions: row['completed_sessions'] as int,
+              remainingSessions: row['remaining_sessions'] as int,
+            );
+          })
+          .toList(growable: false),
+    );
+  });
+
+  @override
   Future<PractitionerAvailability> availability(String id) =>
       _request(() async {
         final response = await api.dio.get<Map<String, dynamic>>(

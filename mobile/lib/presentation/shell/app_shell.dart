@@ -92,6 +92,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         builder: (_) => BookingWizard(
           repository: widget.appointments!,
           catalog: widget.catalog!,
+          packs: widget.packs,
         ),
       ),
     );
@@ -173,6 +174,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                     ),
                     repository: widget.appointments!,
                     catalog: widget.catalog!,
+                    packs: widget.packs,
                     isAdmin: user.isAdmin,
                   )
                 else
@@ -186,6 +188,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                     key: ValueKey('clients:${user.id}:${user.role}'),
                     kind: CatalogKind.clients,
                     repository: widget.catalog!,
+                    appointments: widget.appointments,
                     isAdmin: user.isAdmin,
                   )
                 else
@@ -309,6 +312,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                 repository: widget.website!,
                                 appointments: widget.appointments!,
                                 catalog: widget.catalog!,
+                                packs: widget.packs,
                                 isAdmin: user.isAdmin,
                               ),
                             ),

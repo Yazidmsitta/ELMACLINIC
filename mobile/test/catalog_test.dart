@@ -14,6 +14,14 @@ class FakeCatalog implements CatalogRepository {
   int listCalls = 0, availabilitySaves = 0;
   final List<(String, bool)> toggles = [];
   @override
+  Future<ClientProfile> clientProfile(String id) async => ClientProfile(
+    client: CatalogEntry(id: id, name: 'Soin de démonstration', phone: '0600000000'),
+    today: const [],
+    history: const [],
+    packs: const [],
+  );
+
+  @override
   Future<CatalogPage> list(
     CatalogKind kind, {
     int page = 1,

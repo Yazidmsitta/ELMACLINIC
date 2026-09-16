@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../domain/appointments/appointments.dart';
 import '../../domain/catalog/catalog.dart';
+import '../../domain/payments/payments.dart';
 import '../../domain/app_failure.dart';
 import '../theme/app_theme.dart';
 import '../widgets/elma_widgets.dart';
@@ -133,6 +134,75 @@ class _AppointmentDetailState extends State<AppointmentDetail> {
     }
   }
 
+  Widget _paymentButton(ClinicAppointment appointment, bool ready) {
+    final repository = PaymentScope.of(context);
+    if (repository == null ||
+        ![
+          AppointmentStatus.confirmed,
+          AppointmentStatus.inProgress,
+          AppointmentStatus.completed,
+        ].contains(appointment.status)) {
+      return const SizedBox.shrink();
+    }
+    return FutureBuilder<PaymentBalance>(
+      future: repository.balance(appointment.id),
+      builder: (context, snapshot) {
+        final remaining = snapshot.data?.remaining;
+        final paid = remaining != null && remaining <= 0;
+        return Padding(
+          padding: const EdgeInsets.only(bottom: 12),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ElmaButton(
+                label: paid ? 'Déjà encaissé' : 'Encaisser un paiement',
+                onPressed:
+                    !ready ||
+                        paid ||
+                        snapshot.connectionState != ConnectionState.done
+                    ? null
+                    : () async {
+                        final saved = await showModalBottomSheet<String>(
+                          context: context,
+                          isScrollControlled: true,
+                          isDismissible: false,
+                          enableDrag: false,
+                          builder: (_) => PaymentSheet(
+                            appointment: appointment,
+                            repository: repository,
+                          ),
+                        );
+                        if (mounted && context.mounted && saved != null) {
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text('Paiement enregistré.'),
+                            ),
+                          );
+                          await _load();
+                        }
+                      },
+              ),
+              if (remaining != null)
+                Padding(
+                  padding: const EdgeInsets.only(top: 6),
+                  child: Text(
+                    paid
+                        ? 'Solde réglé.'
+                        : 'Reste à encaisser : ${NumberFormat.currency(locale: 'fr', symbol: 'MAD').format(remaining / 100)}',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: paid ? ElmaColors.green : ElmaColors.red,
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
   Widget _section(String label, Widget child, {Color color = Colors.white}) =>
       Container(
         margin: const EdgeInsets.only(bottom: 16),
@@ -174,7 +244,7 @@ class _AppointmentDetailState extends State<AppointmentDetail> {
                 ),
                 trailing: a != null && a.canReschedule
                     ? IconButton(
-                        tooltip: 'Modifier',
+                        tooltip: 'Reporter',
                         onPressed: ready ? _edit : null,
                         icon: const ElmaIcon('Edit', size: 18),
                       )
@@ -258,6 +328,14 @@ class _AppointmentDetailState extends State<AppointmentDetail> {
                               Text(
                                 '${a.end.difference(a.start).inMinutes} minutes · Casablanca',
                               ),
+                              if (a.canReschedule) ...[
+                                const SizedBox(height: 14),
+                                OutlinedButton.icon(
+                                  onPressed: ready ? _edit : null,
+                                  icon: const ElmaIcon('Calendar', size: 16),
+                                  label: const Text('Reporter à une autre date'),
+                                ),
+                              ],
                             ],
                           ),
                         ),
@@ -286,50 +364,7 @@ class _AppointmentDetailState extends State<AppointmentDetail> {
                         ),
                         if (a.notes != null && a.notes!.isNotEmpty)
                           _section('Notes', Text(a.notes!)),
-                        if (PaymentScope.of(context) != null &&
-                            [
-                              AppointmentStatus.confirmed,
-                              AppointmentStatus.inProgress,
-                              AppointmentStatus.completed,
-                            ].contains(a.status))
-                          Padding(
-                            padding: const EdgeInsets.only(bottom: 12),
-                            child: ElmaButton(
-                              label: 'Encaisser un paiement',
-                              onPressed: ready
-                                  ? () async {
-                                      final repository = PaymentScope.of(
-                                        context,
-                                      )!;
-                                      final saved =
-                                          await showModalBottomSheet<String>(
-                                            context: context,
-                                            isScrollControlled: true,
-                                            isDismissible: false,
-                                            enableDrag: false,
-                                            builder: (_) => PaymentSheet(
-                                              appointment: a,
-                                              repository: repository,
-                                            ),
-                                          );
-                                      if (mounted &&
-                                          context.mounted &&
-                                          saved != null) {
-                                        ScaffoldMessenger.of(
-                                          context,
-                                        ).showSnackBar(
-                                          const SnackBar(
-                                            content: Text(
-                                              'Paiement enregistré.',
-                                            ),
-                                          ),
-                                        );
-                                        await _load();
-                                      }
-                                    }
-                                  : null,
-                            ),
-                          ),
+                        _paymentButton(a, ready),
                         if (a.status.next.isNotEmpty)
                           const Padding(
                             padding: EdgeInsets.only(top: 12, bottom: 12),
@@ -370,7 +405,7 @@ class _AppointmentDetailState extends State<AppointmentDetail> {
                                 AppointmentStatus.inProgress =>
                                   'Démarrer la séance',
                                 AppointmentStatus.completed =>
-                                  'Terminer la séance',
+                                  'Confirmer séance terminée',
                                 AppointmentStatus.cancelled =>
                                   'Annuler le rendez-vous',
                                 AppointmentStatus.noShow => 'Marquer absent',
@@ -526,7 +561,7 @@ class _RescheduleSheetState extends State<RescheduleSheet> {
                   children: [
                     const Expanded(
                       child: Text(
-                        'Modifier le rendez-vous',
+                        'Reporter le rendez-vous',
                         style: TextStyle(
                           fontSize: 17,
                           fontWeight: FontWeight.w600,
@@ -566,7 +601,7 @@ class _RescheduleSheetState extends State<RescheduleSheet> {
                 if (_error != null)
                   Text(_error!, style: const TextStyle(color: ElmaColors.red)),
                 ElmaButton(
-                  label: 'Enregistrer',
+                  label: 'Reporter',
                   loading: _busy,
                   onPressed: _practitioner == null ? null : _save,
                 ),

@@ -69,6 +69,11 @@ test('client profile exposes today appointments, history, and pack session statu
   const profile=(await db.query<{data:{history:unknown[];packs:Array<{name:string;total_sessions:number;completed_sessions:number;remaining_sessions:number;status:string}>}}>('select client_profile($1) as data',[client])).rows[0].data;
   expect(profile.history.length).toBeGreaterThan(0);
   expect(profile.packs).toEqual([expect.objectContaining({name:'Pack 8 séances',total_sessions:16,completed_sessions:1,remaining_sessions:15,status:'EN_ATTENTE'})]);
+  const added=(await db.query<{data:{total_sessions:number;remaining_sessions:number}}>('select adjust_client_pack_sessions($1,$2,1,null) as data',[client,pack])).rows[0].data;
+  expect(added.total_sessions).toBe(17);expect(added.remaining_sessions).toBe(16);
+  const removed=(await db.query<{data:{total_sessions:number;remaining_sessions:number}}>('select adjust_client_pack_sessions($1,$2,-16,null) as data',[client,pack])).rows[0].data;
+  expect(removed.total_sessions).toBe(1);expect(removed.remaining_sessions).toBe(0);
+  await expect(db.query('select adjust_client_pack_sessions($1,$2,-1,null)',[client,pack])).rejects.toThrow('séance déjà terminée');
 });
 test('USER cannot override prices; changed quote requires renewed confirmation',async()=>{
   const later=new Date(new Date(start).getTime()+2*3600000).toISOString();

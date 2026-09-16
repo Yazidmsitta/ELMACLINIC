@@ -7,6 +7,14 @@ import '../api/api_client.dart';
 class ApiCatalogRepository implements CatalogRepository {
   ApiCatalogRepository(this.api);
   final ApiClient api;
+  ClientPackSummary _packSummary(Map<String, dynamic> row) => ClientPackSummary(
+    packId: row['pack_id'] as String,
+    name: row['name'] as String,
+    totalSessions: row['total_sessions'] as int,
+    completedSessions: row['completed_sessions'] as int,
+    remainingSessions: row['remaining_sessions'] as int,
+  );
+
   @override
   Future<ClientProfile> clientProfile(String id) => _request(() async {
     final response = await api.dio.get<Map<String, dynamic>>(
@@ -31,16 +39,23 @@ class ApiCatalogRepository implements CatalogRepository {
       packs: ((data['packs'] as List?) ?? const [])
           .map((dynamic raw) {
             final row = raw as Map<String, dynamic>;
-            return ClientPackSummary(
-              packId: row['pack_id'] as String,
-              name: row['name'] as String,
-              totalSessions: row['total_sessions'] as int,
-              completedSessions: row['completed_sessions'] as int,
-              remainingSessions: row['remaining_sessions'] as int,
-            );
+return _packSummary(row);
           })
           .toList(growable: false),
     );
+  });
+
+  @override
+  Future<ClientPackSummary> adjustClientPackSessions(
+    String clientId,
+    String packId,
+    int delta,
+  ) => _request(() async {
+    final response = await api.dio.post<Map<String, dynamic>>(
+      'clients/$clientId/packs/$packId/sessions',
+      data: {'delta': delta},
+    );
+    return _packSummary(response.data!['data'] as Map<String, dynamic>);
   });
 
   @override

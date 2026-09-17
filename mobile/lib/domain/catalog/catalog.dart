@@ -83,6 +83,12 @@ abstract interface class CatalogRepository {
     PractitionerAvailability availability,
   );
   Future<void> uploadImage(String id, Uint8List bytes, String mimeType);
+  Future<void> adjustClientPackSessions(
+    String clientId,
+    String packId,
+    int delta, {
+    String? reason,
+  });
   Future<CatalogPage> list(
     CatalogKind kind, {
     int page = 1,

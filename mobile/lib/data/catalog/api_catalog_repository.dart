@@ -107,6 +107,21 @@ class ApiCatalogRepository implements CatalogRepository {
           options: Options(contentType: mimeType),
         );
       });
+  @override
+  Future<void> adjustClientPackSessions(
+    String clientId,
+    String packId,
+    int delta, {
+    String? reason,
+  }) => _request(() async {
+    await api.dio.post<dynamic>(
+      'clients/$clientId/packs/$packId/sessions',
+      data: {
+        'delta': delta,
+        if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
+      },
+    );
+  });
   Future<T> _request<T>(Future<T> Function() action) async {
     try {
       return await action();

@@ -89,6 +89,26 @@ class FakeAppointments implements AppointmentsRepository {
 
 void main() {
   setUpAll(() => initializeDateFormatting('fr'));
+  testWidgets('booking service step uses prestation cards and category pills', (
+    tester,
+  ) async {
+    await tester.pumpWidget(
+      catalogApp(
+        BookingWizard(repository: FakeAppointments(), catalog: FakeCatalog()),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Soin de démonstration'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Continuer'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('Choisir la prestation'), findsOneWidget);
+    expect(find.text('Sélectionnez le soin ou service'), findsOneWidget);
+    expect(find.text('Toutes'), findsOneWidget);
+    expect(find.text('Soin de démonstration'), findsOneWidget);
+  });
+
   testWidgets('day navigation and source filters request authoritative data', (
     tester,
   ) async {

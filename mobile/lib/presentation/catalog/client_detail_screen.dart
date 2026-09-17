@@ -28,6 +28,7 @@ class ClientDetailScreen extends StatefulWidget {
 class _ClientDetailScreenState extends State<ClientDetailScreen> {
   ClientProfile? _profile;
   String? _error;
+  String? _adjustingPack;
   bool _loading = true;
   int _generation = 0;
 
@@ -52,6 +53,53 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
       setState(() => _error = friendlyError(error));
     } finally {
       if (mounted && generation == _generation) setState(() => _loading = false);
+    }
+  }
+
+  Future<void> _adjustPackSessions(ClientPackSummary pack, int delta) async {
+    if (_adjustingPack != null) return;
+    if (delta == 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aucune modification à appliquer.')),
+      );
+      return;
+    }
+    if (delta < 0 && pack.totalSessions <= pack.completedSessions) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Impossible de retirer une séance déjà terminée.')),
+      );
+      return;
+    }
+    if (delta < 0 && pack.completedSessions <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aucune séance à supprimer.')),
+      );
+      return;
+    }
+    setState(() {
+      _adjustingPack = pack.packId;
+      _error = null;
+    });
+    try {
+      await widget.repository.adjustClientPackSessions(
+        widget.entry.id,
+        pack.packId,
+        delta,
+      );
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(delta > 0 ? 'Séance ajoutée.' : 'Séance retirée.'),
+        ),
+      );
+      await _load();
+    } catch (error) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(friendlyError(error))),
+      );
+    } finally {
+      if (mounted) setState(() => _adjustingPack = null);
     }
   }
 
@@ -229,8 +277,40 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Passez le rendez-vous du jour en “Terminé” pour confirmer la séance.',
+            'Ajoutez une séance faite sans rendez-vous, ou supprimez une séance ajoutée par erreur.',
             style: TextStyle(fontSize: 11, color: ElmaColors.muted),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed:
+                      _adjustingPack == null &&
+                          pack.totalSessions > pack.completedSessions
+                      ? () => _adjustPackSessions(pack, -1)
+                      : null,
+                  icon: _adjustingPack == pack.packId
+                      ? const SizedBox(
+                          width: 14,
+                          height: 14,
+                          child: CircularProgressIndicator(strokeWidth: 2),
+                        )
+                      : const Icon(Icons.remove, size: 16),
+                  label: const Text('Retirer'),
+                ),
+              ),
+              const SizedBox(width: 10),
+              Expanded(
+                child: OutlinedButton.icon(
+                  onPressed: _adjustingPack == null
+                      ? () => _adjustPackSessions(pack, 1)
+                      : null,
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const Text('Ajouter'),
+                ),
+              ),
+            ],
           ),
         ],
       ),

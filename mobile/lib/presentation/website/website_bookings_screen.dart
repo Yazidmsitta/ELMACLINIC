@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../domain/app_failure.dart';
 import '../../domain/appointments/appointments.dart';
 import '../../domain/catalog/catalog.dart';
+import '../../domain/packs/packs.dart';
 import '../../domain/website/website_bookings.dart';
 import '../appointments/appointment_detail.dart';
 import '../appointments/booking_wizard.dart';
@@ -18,10 +19,12 @@ class WebsiteBookingsScreen extends StatefulWidget {
     required this.appointments,
     required this.catalog,
     required this.isAdmin,
+    this.packs,
   });
   final WebsiteBookingsRepository repository;
   final AppointmentsRepository appointments;
   final CatalogRepository catalog;
+  final PacksRepository? packs;
   final bool isAdmin;
   @override
   State<WebsiteBookingsScreen> createState() => _WebsiteBookingsScreenState();
@@ -131,6 +134,7 @@ class _WebsiteBookingsScreenState extends State<WebsiteBookingsScreen> {
           builder: (_) => BookingWizard(
             repository: widget.appointments,
             catalog: widget.catalog,
+            packs: widget.packs,
             websiteBooking: event,
             websiteRepository: widget.repository,
           ),

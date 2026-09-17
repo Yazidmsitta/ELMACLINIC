@@ -15,7 +15,7 @@ class FakeCatalog implements CatalogRepository {
   final List<(String, bool)> toggles = [];
   @override
   Future<ClientProfile> clientProfile(String id) async => ClientProfile(
-    client: CatalogEntry(id: id, name: 'Soin de démonstration', phone: '0600000000'),
+    client: CatalogEntry(id: id, name: 'Soin de dï¿½monstration', phone: '0600000000'),
     today: const [],
     history: const [],
     packs: const [],
@@ -71,6 +71,13 @@ class FakeCatalog implements CatalogRepository {
 
   @override
   Future<void> archive(CatalogKind kind, String id) async {}
+  @override
+  Future<void> adjustClientPackSessions(
+    String clientId,
+    String packId,
+    int delta, {
+    String? reason,
+  }) async {}
   @override
   Future<PractitionerAvailability> availability(String id) async {
     if (failAvailability) throw const AppFailure('Planning indisponible.');

@@ -13,5 +13,5 @@ export async function GET(request:Request){return handle(async()=>{
 export async function POST(request:Request){return handle(async()=>{
  const {db,user}=await authenticate(request);requireAdmin(user.role);
  const b=z.object({id:z.uuid().nullable(),name:z.string().trim().min(1).max(200),description:z.string().max(2000).nullable(),price_centimes:z.number().int().min(0).max(100000000),total_sessions:z.number().int().min(1).max(100),active:z.boolean(),version:z.number().int().min(0),items:z.array(z.object({service_id:z.uuid(),sessions:z.number().int().min(1).max(100)}).strict()).max(30).default([])}).strict().parse(await request.json());
- const r=await db.rpc('save_pack',{record_id:b.id,pack_name:b.name,description_text:b.description,price:b.price_centimes,total_sessions:b.total_sessions,enabled:b.active,expected_version:b.version,items:b.items});databaseError(r.error);if(!r.data)throw new HttpError(404,'Pack introuvable.');return json({id:r.data},b.id?200:201);
+ const r=await db.rpc('save_pack',{record_id:b.id,pack_name:b.name,description_text:b.description,price:b.price_centimes,total_sessions_count:b.total_sessions,enabled:b.active,expected_version:b.version,items:b.items});databaseError(r.error);if(!r.data)throw new HttpError(404,'Pack introuvable.');return json({id:r.data},b.id?200:201);
 });}

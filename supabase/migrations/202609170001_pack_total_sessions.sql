@@ -10,7 +10,7 @@ create or replace function public.save_pack(
   pack_name text,
   description_text text,
   price integer,
-  total_sessions integer,
+  total_sessions_count integer,
   enabled boolean,
   expected_version integer,
   items jsonb
@@ -22,7 +22,7 @@ begin
   if pack_name is null or length(trim(pack_name)) not between 1 and 200
     or length(coalesce(description_text,'')) > 2000
     or price is null or price not between 0 and 100000000
-    or total_sessions is null or total_sessions not between 1 and 100
+    or total_sessions_count is null or total_sessions_count not between 1 and 100
     or enabled is null or items is null or jsonb_typeof(items) <> 'array'
     or jsonb_array_length(items) > 30 then
     raise invalid_parameter_value;
@@ -50,7 +50,7 @@ begin
   if record_id is null then
     if expected_version is distinct from 0 then raise invalid_parameter_value; end if;
     insert into public.packs(name,description,price_centimes,total_sessions,active)
-      values(trim(pack_name),description_text,price,total_sessions,enabled)
+      values(trim(pack_name),description_text,price,total_sessions_count,enabled)
       returning id into result;
   else
     select * into previous from public.packs where id = record_id for update;
@@ -61,7 +61,7 @@ begin
     result := record_id;
     update public.packs
       set name=trim(pack_name), description=description_text, price_centimes=price,
-          total_sessions=total_sessions, active=enabled, version=version+1, updated_at=now()
+          total_sessions=total_sessions_count, active=enabled, version=version+1, updated_at=now()
       where id=result;
     delete from public.pack_items where pack_id=result;
   end if;

@@ -15,24 +15,23 @@ class FakeCatalog implements CatalogRepository {
   final List<(String, bool)> toggles = [];
   @override
   Future<ClientProfile> clientProfile(String id) async => ClientProfile(
-    client: CatalogEntry(id: id, name: 'Soin de démonstration', phone: '0600000000'),
+    client: CatalogEntry(
+      id: id,
+      name: 'Soin de démonstration',
+      phone: '0600000000',
+    ),
     today: const [],
     history: const [],
     packs: const [],
   );
 
   @override
-  Future<ClientPackSummary> adjustClientPackSessions(
+  Future<void> adjustClientPackSessions(
     String clientId,
     String packId,
-    int delta,
-  ) async => ClientPackSummary(
-    packId: packId,
-    name: 'Pack test',
-    totalSessions: 8 + delta,
-    completedSessions: 1,
-    remainingSessions: 7 + delta,
-  );
+    int delta, {
+    String? reason,
+  }) async {}
 
   @override
   Future<CatalogPage> list(
@@ -53,7 +52,7 @@ class FakeCatalog implements CatalogRepository {
       [
         CatalogEntry(
           id: '$page',
-          name: page == 1 ? 'Soin de dÃ©monstration' : 'DeuxiÃ¨me fiche',
+          name: page == 1 ? 'Soin de démonstration' : 'Deuxième fiche',
           durationMinutes: 30,
           priceCentimes: 20000,
           categoryId: 'category',

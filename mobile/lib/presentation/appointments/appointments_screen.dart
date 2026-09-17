@@ -17,7 +17,6 @@ class AppointmentsScreen extends StatefulWidget {
     super.key,
     required this.repository,
     required this.catalog,
-    this.packs,
     required this.isAdmin,
     this.packs,
     this.initialDay,

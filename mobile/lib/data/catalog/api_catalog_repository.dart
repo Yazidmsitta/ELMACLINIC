@@ -39,23 +39,10 @@ class ApiCatalogRepository implements CatalogRepository {
       packs: ((data['packs'] as List?) ?? const [])
           .map((dynamic raw) {
             final row = raw as Map<String, dynamic>;
-return _packSummary(row);
+            return _packSummary(row);
           })
           .toList(growable: false),
     );
-  });
-
-  @override
-  Future<ClientPackSummary> adjustClientPackSessions(
-    String clientId,
-    String packId,
-    int delta,
-  ) => _request(() async {
-    final response = await api.dio.post<Map<String, dynamic>>(
-      'clients/$clientId/packs/$packId/sessions',
-      data: {'delta': delta},
-    );
-    return _packSummary(response.data!['data'] as Map<String, dynamic>);
   });
 
   @override
@@ -223,9 +210,14 @@ return _packSummary(row);
       if (kind != CatalogKind.clients) 'active': entry.active,
     };
     if (creating) {
-      final response=await api.dio.post<Map<String,dynamic>>(kind.path,data:body); return (response.data!['data'] as Map<String,dynamic>)['id'] as String;
+      final response = await api.dio.post<Map<String, dynamic>>(
+        kind.path,
+        data: body,
+      );
+      return (response.data!['data'] as Map<String, dynamic>)['id'] as String;
     } else {
-      await api.dio.patch<dynamic>('${kind.path}/${entry.id}', data: body); return entry.id;
+      await api.dio.patch<dynamic>('${kind.path}/${entry.id}', data: body);
+      return entry.id;
     }
   });
   @override

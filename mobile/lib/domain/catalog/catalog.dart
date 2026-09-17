@@ -49,7 +49,6 @@ class CatalogPage {
   final bool hasMore;
 }
 
-
 class ClientPackSummary {
   const ClientPackSummary({
     required this.packId,
@@ -77,11 +76,6 @@ class ClientProfile {
 
 abstract interface class CatalogRepository {
   Future<ClientProfile> clientProfile(String id);
-  Future<ClientPackSummary> adjustClientPackSessions(
-    String clientId,
-    String packId,
-    int delta,
-  );
   Future<PractitionerAvailability> availability(String id);
   Future<void> saveAvailability(
     String id,

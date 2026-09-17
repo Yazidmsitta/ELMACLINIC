@@ -1,4 +1,3 @@
-import '../widgets/image_field.dart';
 import 'package:flutter/material.dart';
 import '../../domain/packs/packs.dart';
 import '../../domain/catalog/catalog.dart';
@@ -148,7 +147,7 @@ class _PacksScreenState extends State<PacksScreen> {
                           ),
                         ),
                         Text(
-                          '${(pack.price / 100).toStringAsFixed(2)} MAD · ${pack.active ? 'Actif' : 'Inactif'}',
+                          '${(pack.price / 100).toStringAsFixed(2)} MAD · ${pack.totalSessions} séance(s) · ${pack.active ? 'Actif' : 'Inactif'}',
                         ),
                         if (pack.description.isNotEmpty) Text(pack.description),
                         for (final item in pack.items.entries)
@@ -214,13 +213,12 @@ class PackEditor extends StatefulWidget {
 }
 
 class _PackEditorState extends State<PackEditor> {
-  DraftImage? _image;
   String? _savedId;
   final _name = TextEditingController(),
       _description = TextEditingController(),
-      _price = TextEditingController();
-  late final Map<String, int> _items;
-  bool _active = true, _busy = false;
+      _price = TextEditingController(),
+      _sessionCount = TextEditingController();
+  bool _busy = false;
   String? _error;
   @override
   void initState() {
@@ -229,8 +227,7 @@ class _PackEditorState extends State<PackEditor> {
     _name.text = p?.name ?? '';
     _description.text = p?.description ?? '';
     _price.text = p == null ? '' : (p.price / 100).toStringAsFixed(2);
-    _active = p?.active ?? true;
-    _items = {...?p?.items};
+    _sessionCount.text = '${p?.totalSessions ?? 1}';
   }
 
   @override
@@ -238,18 +235,23 @@ class _PackEditorState extends State<PackEditor> {
     _name.dispose();
     _description.dispose();
     _price.dispose();
+    _sessionCount.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     final price = parseMadCentimes(_price.text);
+    final sessions = int.tryParse(_sessionCount.text.trim());
     if (_name.text.trim().isEmpty ||
         price == null ||
         price < 0 ||
         price > 100000000 ||
-        _items.isEmpty) {
+        sessions == null ||
+        sessions < 1 ||
+        sessions > 100) {
       setState(
-        () => _error = 'Renseignez le nom, le prix et au moins une prestation.',
+        () => _error =
+            'Renseignez le nom, le prix et un nombre de séances entre 1 et 100.',
       );
       return;
     }
@@ -264,12 +266,12 @@ class _PackEditorState extends State<PackEditor> {
           name: _name.text.trim(),
           description: _description.text,
           price: price,
-          active: _active,
+          totalSessions: sessions,
+          active: widget.pack?.active ?? true,
           version: widget.pack?.version ?? 0,
-          items: _items,
+          items: const {},
         ),
       );
-      if (_image != null) await widget.repository.uploadImage(_savedId!, _image!.bytes, _image!.mime);
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) setState(() => _error = friendlyError(e));
@@ -296,19 +298,30 @@ class _PackEditorState extends State<PackEditor> {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  ImageField(enabled: !_busy, onChanged: (image) => _image = image, existingUrl: widget.pack?.imageUrl),
                   TextField(
                     controller: _name,
                     enabled: !_busy && _savedId == null,
                     maxLength: 200,
                     decoration: const InputDecoration(labelText: 'Nom du pack'),
                   ),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: _description,
                     enabled: !_busy && _savedId == null,
                     maxLength: 2000,
                     decoration: const InputDecoration(labelText: 'Description'),
                   ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _sessionCount,
+                    enabled: !_busy && _savedId == null,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Nombre de séances',
+                      suffixText: 'séances',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: _price,
                     enabled: !_busy && _savedId == null,
@@ -319,52 +332,7 @@ class _PackEditorState extends State<PackEditor> {
                       labelText: 'Prix du pack (MAD)',
                     ),
                   ),
-                  SwitchListTile(
-                    title: const Text('Pack actif'),
-                    value: _active,
-                    onChanged: _busy
-                        ? null
-                        : (v) => setState(() => _active = v),
-                  ),
-                  const Text(
-                    'Prestations et nombre de séances',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  for (final s in widget.services.where(
-                    (s) => s.active || _items.containsKey(s.id),
-                  ))
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Row(
-                        children: [
-                          Expanded(child: Text(s.name)),
-                          DropdownButton<int>(
-                            value: _items[s.id] ?? 0,
-                            underline: const SizedBox.shrink(),
-                            onChanged: _busy
-                                ? null
-                                : (sessions) => setState(() {
-                                    if (sessions == null || sessions == 0) {
-                                      _items.remove(s.id);
-                                    } else {
-                                      _items[s.id] = sessions;
-                                    }
-                                  }),
-                            items: [
-                              const DropdownMenuItem(
-                                value: 0,
-                                child: Text('Ajouter'),
-                              ),
-                              for (var sessions = 1; sessions <= 100; sessions++)
-                                DropdownMenuItem(
-                                  value: sessions,
-                                  child: Text('$sessions séance(s)'),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+                  const SizedBox(height: 8),
                   if (_error != null)
                     Text(
                       _error!,

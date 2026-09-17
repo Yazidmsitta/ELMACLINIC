@@ -6,6 +6,7 @@ class ClinicPack {
     required this.name,
     this.description = '',
     required this.price,
+    this.totalSessions = 1,
     this.active = true,
     this.version = 0,
     required this.items,
@@ -13,7 +14,7 @@ class ClinicPack {
   });
   final String? id, imageUrl;
   final String name, description;
-  final int price, version;
+  final int price, totalSessions, version;
   final bool active;
   final Map<String, int> items;
 }

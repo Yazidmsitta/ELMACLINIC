@@ -3,6 +3,7 @@ create table public.packs (
  id uuid primary key default gen_random_uuid(), name text not null check(length(trim(name)) between 1 and 200),
  description text, price_centimes integer not null check(price_centimes between 0 and 100000000),
  active boolean not null default true, version integer not null default 1,
+ total_sessions integer not null default 1 check(total_sessions between 1 and 100),
  image_path text, created_at timestamptz not null default now(), updated_at timestamptz not null default now()
 );
 create table public.pack_items (

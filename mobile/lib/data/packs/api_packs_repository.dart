@@ -36,6 +36,7 @@ class ApiPacksRepository implements PacksRepository {
               name: p['name'] as String,
               description: p['description'] as String? ?? '',
               price: p['price_centimes'] as int,
+              totalSessions: (p['total_sessions'] as num?)?.toInt() ?? 1,
               active: p['active'] as bool,
               version: p['version'] as int,
               imageUrl: p['image_url'] as String?,
@@ -58,6 +59,7 @@ class ApiPacksRepository implements PacksRepository {
         'name': p.name,
         'description': p.description,
         'price_centimes': p.price,
+        'total_sessions': p.totalSessions,
         'active': p.active,
         'version': p.version,
         'items': [

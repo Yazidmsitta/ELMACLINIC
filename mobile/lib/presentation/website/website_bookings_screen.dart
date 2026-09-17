@@ -20,7 +20,6 @@ class WebsiteBookingsScreen extends StatefulWidget {
     required this.catalog,
     this.packs,
     required this.isAdmin,
-    this.packs,
   });
   final WebsiteBookingsRepository repository;
   final AppointmentsRepository appointments;

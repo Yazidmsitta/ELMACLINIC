@@ -42,6 +42,7 @@ class _BookingWizardState extends State<BookingWizard> {
   CatalogEntry? _client, _practitioner;
   final List<CatalogEntry> _services = [];
   final List<CatalogEntry> _serviceEntries = [];
+  final List<CatalogEntry> _categoryEntries = [];
   final List<ClinicPack> _packs = [];
   final List<ClinicPack> _selectedPacks = [];
   final List<CatalogEntry> _practitioners = [];
@@ -49,13 +50,9 @@ class _BookingWizardState extends State<BookingWizard> {
   final List<DateTime> _availabilityDates = [];
   DateTime? _selectedAvailabilityDate;
   bool _loadingPractitioners = false, _loadingAvailability = false;
-  final List<String> _serviceChips = const [
-    'Toutes',
-    'Épilation',
-    'Soins visage',
-    'Haut de gamme',
-  ];
-  int _selectedServiceChip = 0;
+  String? _selectedCategoryId;
+  final _selectionSearch = TextEditingController();
+  String _selectionSearchQuery = '';
   bool _loadingServices = false;
   _BookingMode _mode = _BookingMode.prestations;
   DateTime? _day;
@@ -66,17 +63,35 @@ class _BookingWizardState extends State<BookingWizard> {
   bool _busy = false, _loadingPacks = false;
 
   List<CatalogEntry> get _visibleServiceEntries {
-    if (_selectedServiceChip == 0) return _serviceEntries;
-    final query = _serviceChips[_selectedServiceChip].toLowerCase();
-    final filtered = _serviceEntries.where((entry) {
+    final query = _selectionSearchQuery.trim().toLowerCase();
+    return _serviceEntries.where((entry) {
+      final categoryMatches =
+          _selectedCategoryId == null ||
+          entry.categoryId == _selectedCategoryId;
       final text = [
         entry.name,
         entry.specialty,
         entry.categoryId,
+        if (entry.categoryId != null) _categoryName(entry.categoryId!),
       ].whereType<String>().join(' ').toLowerCase();
+      return categoryMatches && (query.isEmpty || text.contains(query));
+    }).toList();
+  }
+
+  List<ClinicPack> get _visiblePacks {
+    final query = _selectionSearchQuery.trim().toLowerCase();
+    if (query.isEmpty) return _packs;
+    return _packs.where((pack) {
+      final text = '${pack.name} ${pack.description}'.toLowerCase();
       return text.contains(query);
     }).toList();
-    return filtered.isEmpty ? _serviceEntries : filtered;
+  }
+
+  String? _categoryName(String id) {
+    for (final category in _categoryEntries) {
+      if (category.id == id) return category.name;
+    }
+    return null;
   }
 
   int get _bookingDurationMinutes {
@@ -91,6 +106,7 @@ class _BookingWizardState extends State<BookingWizard> {
   void initState() {
     super.initState();
     _loadServices();
+    _loadCategories();
     _loadPractitioners();
     if (widget.packs != null) _loadPacks();
     final event = widget.websiteBooking;
@@ -221,18 +237,77 @@ class _BookingWizardState extends State<BookingWizard> {
   Future<void> _loadServices() async {
     setState(() => _loadingServices = true);
     try {
-      final page = await widget.catalog.list(CatalogKind.services, page: 1);
+      final services = <CatalogEntry>[];
+      var pageNumber = 1;
+      while (true) {
+        final page = await widget.catalog.list(
+          CatalogKind.services,
+          page: pageNumber++,
+        );
+        services.addAll(page.entries.where((entry) => entry.active));
+        if (!page.hasMore) break;
+      }
       if (!mounted) return;
       setState(
         () => _serviceEntries
           ..clear()
-          ..addAll(page.entries.where((entry) => entry.active)),
+          ..addAll(services),
       );
     } catch (error) {
       if (mounted) setState(() => _error = friendlyError(error));
     } finally {
       if (mounted) setState(() => _loadingServices = false);
     }
+  }
+
+  Future<void> _loadCategories() async {
+    try {
+      final categories = <CatalogEntry>[];
+      var pageNumber = 1;
+      while (true) {
+        final page = await widget.catalog.list(
+          CatalogKind.categories,
+          page: pageNumber++,
+        );
+        categories.addAll(page.entries.where((entry) => entry.active));
+        if (!page.hasMore) break;
+      }
+      if (!mounted) return;
+      setState(() {
+        _categoryEntries
+          ..clear()
+          ..addAll(categories)
+          ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+      });
+    } catch (error) {
+      if (mounted) setState(() => _error = friendlyError(error));
+    }
+  }
+
+  Widget _catalogImage(String? url, String fallback, {double size = 48}) {
+    final image = url == null || url.isEmpty ? null : NetworkImage(url);
+    return Container(
+      width: size,
+      height: size,
+      alignment: Alignment.center,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE9E8DE),
+        borderRadius: BorderRadius.circular(size > 30 ? 12 : 10),
+        image: image == null
+            ? null
+            : DecorationImage(image: image, fit: BoxFit.cover),
+      ),
+      child: image == null
+          ? Text(
+              fallback.substring(0, 1).toUpperCase(),
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.w700,
+                color: Color(0xFF5E5D4B),
+              ),
+            )
+          : null,
+    );
   }
 
   Future<void> _loadPacks() async {
@@ -256,6 +331,7 @@ class _BookingWizardState extends State<BookingWizard> {
   @override
   void dispose() {
     _notes.dispose();
+    _selectionSearch.dispose();
     super.dispose();
   }
 
@@ -399,7 +475,7 @@ class _BookingWizardState extends State<BookingWizard> {
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: _mode == _BookingMode.prestations
-                                          ? const Color(0xFF85856F)
+                                          ? const Color(0xFF828D19)
                                           : const Color(0xFFE2E0D9),
                                       width: 1,
                                     ),
@@ -432,7 +508,7 @@ class _BookingWizardState extends State<BookingWizard> {
                                     borderRadius: BorderRadius.circular(12),
                                     border: Border.all(
                                       color: _mode == _BookingMode.packs
-                                          ? const Color(0xFF85856F)
+                                          ? const Color(0xFF828D19)
                                           : const Color(0xFFE2E0D9),
                                       width: 1,
                                     ),
@@ -451,6 +527,50 @@ class _BookingWizardState extends State<BookingWizard> {
                               ),
                             ),
                           ],
+                        ),
+                        const SizedBox(height: 14),
+                        TextField(
+                          controller: _selectionSearch,
+                          onChanged: (value) =>
+                              setState(() => _selectionSearchQuery = value),
+                          decoration: InputDecoration(
+                            hintText: _mode == _BookingMode.prestations
+                                ? 'Rechercher une prestation'
+                                : 'Rechercher un pack',
+                            prefixIcon: const Icon(Icons.search),
+                            suffixIcon: _selectionSearchQuery.isEmpty
+                                ? null
+                                : IconButton(
+                                    tooltip: 'Effacer la recherche',
+                                    onPressed: () {
+                                      _selectionSearch.clear();
+                                      setState(
+                                        () => _selectionSearchQuery = '',
+                                      );
+                                    },
+                                    icon: const Icon(Icons.close),
+                                  ),
+                            filled: true,
+                            fillColor: Colors.white,
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE1DFD8),
+                              ),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(
+                                color: Color(0xFFE1DFD8),
+                              ),
+                            ),
+                            focusedBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(14),
+                              borderSide: const BorderSide(
+                                color: Color(0xFF828D19),
+                              ),
+                            ),
+                          ),
                         ),
                         const SizedBox(height: 14),
                         if (_mode == _BookingMode.prestations) ...[
@@ -477,14 +597,18 @@ class _BookingWizardState extends State<BookingWizard> {
                             height: 42,
                             child: ListView.separated(
                               scrollDirection: Axis.horizontal,
-                              itemCount: _serviceChips.length,
+                              itemCount: _categoryEntries.length + 1,
                               separatorBuilder: (_, __) =>
                                   const SizedBox(width: 10),
                               itemBuilder: (context, index) {
-                                final selected = index == _selectedServiceChip;
+                                final category = index == 0
+                                    ? null
+                                    : _categoryEntries[index - 1];
+                                final selected =
+                                    _selectedCategoryId == category?.id;
                                 return GestureDetector(
                                   onTap: () => setState(
-                                    () => _selectedServiceChip = index,
+                                    () => _selectedCategoryId = category?.id,
                                   ),
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
@@ -493,7 +617,7 @@ class _BookingWizardState extends State<BookingWizard> {
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
                                       color: selected
-                                          ? const Color(0xFF4E4A39)
+                                          ? const Color(0xFF828D19)
                                           : const Color(0xFFF5F2EA),
                                       borderRadius: BorderRadius.circular(18),
                                       border: Border.all(
@@ -501,15 +625,28 @@ class _BookingWizardState extends State<BookingWizard> {
                                         width: 1,
                                       ),
                                     ),
-                                    child: Text(
-                                      _serviceChips[index],
-                                      style: TextStyle(
-                                        fontSize: 16,
-                                        fontWeight: FontWeight.w600,
-                                        color: selected
-                                            ? Colors.white
-                                            : const Color(0xFF3A372F),
-                                      ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        if (category != null) ...[
+                                          _catalogImage(
+                                            category.imageUrl,
+                                            category.name,
+                                            size: 24,
+                                          ),
+                                          const SizedBox(width: 7),
+                                        ],
+                                        Text(
+                                          category?.name ?? 'Toutes',
+                                          style: TextStyle(
+                                            fontSize: 15,
+                                            fontWeight: FontWeight.w600,
+                                            color: selected
+                                                ? Colors.white
+                                                : const Color(0xFF3A372F),
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 );
@@ -609,18 +746,9 @@ class _BookingWizardState extends State<BookingWizard> {
                                                               12,
                                                             ),
                                                       ),
-                                                      child: Text(
-                                                        entry.name
-                                                            .substring(0, 1)
-                                                            .toUpperCase(),
-                                                        style: const TextStyle(
-                                                          fontSize: 18,
-                                                          fontWeight:
-                                                              FontWeight.w700,
-                                                          color: Color(
-                                                            0xFF5E5D4B,
-                                                          ),
-                                                        ),
+                                                      child: _catalogImage(
+                                                        entry.imageUrl,
+                                                        entry.name,
                                                       ),
                                                     ),
                                                     const SizedBox(width: 12),
@@ -647,7 +775,11 @@ class _BookingWizardState extends State<BookingWizard> {
                                                             height: 4,
                                                           ),
                                                           Text(
-                                                            '${entry.specialty ?? 'Soin'} — ${entry.categoryId ?? 'Visage'}',
+                                                            _categoryName(
+                                                                  entry.categoryId ??
+                                                                      '',
+                                                                ) ??
+                                                                'Catégorie',
                                                             style:
                                                                 const TextStyle(
                                                                   fontSize: 12,
@@ -688,7 +820,7 @@ class _BookingWizardState extends State<BookingWizard> {
                                                         child: Icon(
                                                           Icons.check_circle,
                                                           color: Color(
-                                                            0xFF6E6B58,
+                                                            0xFF828D19,
                                                           ),
                                                           size: 22,
                                                         ),
@@ -741,143 +873,180 @@ class _BookingWizardState extends State<BookingWizard> {
                             )
                           else
                             Expanded(
-                              child: ListView.separated(
-                                itemCount: _packs.length,
-                                separatorBuilder: (_, __) =>
-                                    const SizedBox(height: 12),
-                                itemBuilder: (context, index) {
-                                  final pack = _packs[index];
-                                  final selected = _selectedPacks.any(
-                                    (item) => item.id == pack.id,
-                                  );
-                                  return GestureDetector(
-                                    onTap: () => setState(() {
-                                      if (selected) {
-                                        _selectedPacks.removeWhere(
+                              child: _visiblePacks.isEmpty
+                                  ? const Padding(
+                                      padding: EdgeInsets.symmetric(
+                                        vertical: 24,
+                                      ),
+                                      child: Text(
+                                        'Aucun pack ne correspond à votre recherche.',
+                                        style: TextStyle(
+                                          color: ElmaColors.muted,
+                                        ),
+                                      ),
+                                    )
+                                  : ListView.separated(
+                                      itemCount: _visiblePacks.length,
+                                      separatorBuilder: (_, __) =>
+                                          const SizedBox(height: 12),
+                                      itemBuilder: (context, index) {
+                                        final pack = _visiblePacks[index];
+                                        final selected = _selectedPacks.any(
                                           (item) => item.id == pack.id,
                                         );
-                                      } else {
-                                        _selectedPacks.add(pack);
-                                      }
-                                    }),
-                                    child: Container(
-                                      padding: const EdgeInsets.fromLTRB(
-                                        14,
-                                        13,
-                                        14,
-                                        13,
-                                      ),
-                                      decoration: BoxDecoration(
-                                        color: selected
-                                            ? const Color(0xFFE8E8DC)
-                                            : Colors.white,
-                                        border: Border.all(
-                                          color: selected
-                                              ? const Color(0xFF85856F)
-                                              : const Color(0xFFE1DFD8),
-                                          width: 1,
-                                        ),
-                                        borderRadius: BorderRadius.circular(14),
-                                      ),
-                                      child: Row(
-                                        children: [
-                                          Container(
-                                            width: 48,
-                                            height: 48,
-                                            alignment: Alignment.center,
+                                        return GestureDetector(
+                                          onTap: () => setState(() {
+                                            if (selected) {
+                                              _selectedPacks.removeWhere(
+                                                (item) => item.id == pack.id,
+                                              );
+                                            } else {
+                                              _selectedPacks.add(pack);
+                                            }
+                                          }),
+                                          child: Container(
+                                            padding: const EdgeInsets.fromLTRB(
+                                              14,
+                                              13,
+                                              14,
+                                              13,
+                                            ),
                                             decoration: BoxDecoration(
-                                              color: const Color(0xFFE9E8DE),
+                                              color: selected
+                                                  ? const Color(0xFFE8E8DC)
+                                                  : Colors.white,
+                                              border: Border.all(
+                                                color: selected
+                                                    ? const Color(0xFF828D19)
+                                                    : const Color(0xFFE1DFD8),
+                                                width: 1,
+                                              ),
                                               borderRadius:
-                                                  BorderRadius.circular(12),
+                                                  BorderRadius.circular(14),
                                             ),
-                                            child: const Icon(
-                                              Icons.auto_awesome_outlined,
-                                              color: Color(0xFF777665),
-                                              size: 22,
-                                            ),
-                                          ),
-                                          const SizedBox(width: 12),
-                                          Expanded(
-                                            child: Column(
-                                              crossAxisAlignment:
-                                                  CrossAxisAlignment.start,
+                                            child: Row(
                                               children: [
-                                                Text(
-                                                  pack.name,
-                                                  style: const TextStyle(
-                                                    fontSize: 18,
-                                                    fontWeight: FontWeight.w700,
-                                                  ),
-                                                ),
-                                                const SizedBox(height: 4),
-                                                Text(
-                                                  '${(pack.price / 100).toStringAsFixed(2)} MAD',
-                                                  style: const TextStyle(
-                                                    fontSize: 14,
-                                                    color: Color(0xFF7B766D),
-                                                  ),
-                                                ),
-                                                if (pack.description.isNotEmpty)
-                                                  Text(
-                                                    pack.description,
-                                                    maxLines: 1,
-                                                    overflow:
-                                                        TextOverflow.ellipsis,
-                                                    style: const TextStyle(
-                                                      fontSize: 12,
-                                                      color: Color(0xFF929184),
+                                                Container(
+                                                  width: 48,
+                                                  height: 48,
+                                                  alignment: Alignment.center,
+                                                  decoration: BoxDecoration(
+                                                    color: const Color(
+                                                      0xFFE9E8DE,
                                                     ),
+                                                    borderRadius:
+                                                        BorderRadius.circular(
+                                                          12,
+                                                        ),
                                                   ),
+                                                  child: const Icon(
+                                                    Icons.auto_awesome_outlined,
+                                                    color: Color(0xFF777665),
+                                                    size: 22,
+                                                  ),
+                                                ),
+                                                const SizedBox(width: 12),
+                                                Expanded(
+                                                  child: Column(
+                                                    crossAxisAlignment:
+                                                        CrossAxisAlignment
+                                                            .start,
+                                                    children: [
+                                                      Text(
+                                                        pack.name,
+                                                        style: const TextStyle(
+                                                          fontSize: 18,
+                                                          fontWeight:
+                                                              FontWeight.w700,
+                                                        ),
+                                                      ),
+                                                      const SizedBox(height: 4),
+                                                      Text(
+                                                        '${(pack.price / 100).toStringAsFixed(2)} MAD',
+                                                        style: const TextStyle(
+                                                          fontSize: 14,
+                                                          color: Color(
+                                                            0xFF7B766D,
+                                                          ),
+                                                        ),
+                                                      ),
+                                                      if (pack
+                                                          .description
+                                                          .isNotEmpty)
+                                                        Text(
+                                                          pack.description,
+                                                          maxLines: 1,
+                                                          overflow: TextOverflow
+                                                              .ellipsis,
+                                                          style:
+                                                              const TextStyle(
+                                                                fontSize: 12,
+                                                                color: Color(
+                                                                  0xFF929184,
+                                                                ),
+                                                              ),
+                                                        ),
+                                                    ],
+                                                  ),
+                                                ),
+                                                Container(
+                                                  width: 24,
+                                                  height: 24,
+                                                  decoration: BoxDecoration(
+                                                    shape: BoxShape.circle,
+                                                    border: Border.all(
+                                                      color: selected
+                                                          ? const Color(
+                                                              0xFF828D19,
+                                                            )
+                                                          : const Color(
+                                                              0xFFCAC5B6,
+                                                            ),
+                                                      width: 1.5,
+                                                    ),
+                                                    color: selected
+                                                        ? const Color(
+                                                            0xFF828D19,
+                                                          )
+                                                        : Colors.white,
+                                                  ),
+                                                  child: selected
+                                                      ? const Icon(
+                                                          Icons.check,
+                                                          size: 16,
+                                                          color: Colors.white,
+                                                        )
+                                                      : null,
+                                                ),
                                               ],
                                             ),
                                           ),
-                                          Container(
-                                            width: 24,
-                                            height: 24,
-                                            decoration: BoxDecoration(
-                                              shape: BoxShape.circle,
-                                              border: Border.all(
-                                                color: selected
-                                                    ? const Color(0xFF6E6B58)
-                                                    : const Color(0xFFCAC5B6),
-                                                width: 1.5,
-                                              ),
-                                              color: selected
-                                                  ? const Color(0xFF6E6B58)
-                                                  : Colors.white,
-                                            ),
-                                            child: selected
-                                                ? const Icon(
-                                                    Icons.check,
-                                                    size: 16,
-                                                    color: Colors.white,
-                                                  )
-                                                : null,
-                                          ),
-                                        ],
-                                      ),
+                                        );
+                                      },
                                     ),
-                                  );
-                                },
-                              ),
                             ),
                         ],
                       ],
                     ),
-                    2 => Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                    2 => ListView(
                       children: [
                         const Text(
                           'Choisir la praticienne',
                           style: TextStyle(
-                            fontSize: 32,
-                            fontWeight: FontWeight.w700,
+                            fontSize: 18,
+                            fontWeight: FontWeight.w600,
                             color: Color(0xFF1B1B1B),
-                            height: 1.1,
-                            fontFamily: 'DM Serif Display',
                           ),
                         ),
-                        const SizedBox(height: 10),
+                        const SizedBox(height: 4),
+                        const Text(
+                          'Recherchez parmi les fiches existantes.',
+                          style: TextStyle(
+                            fontSize: 13,
+                            color: ElmaColors.muted,
+                          ),
+                        ),
+                        const SizedBox(height: 16),
                         if (_loadingPractitioners)
                           const Center(
                             child: Padding(
@@ -886,75 +1055,63 @@ class _BookingWizardState extends State<BookingWizard> {
                             ),
                           )
                         else
-                          Expanded(
-                            child: ListView.separated(
-                              itemCount: _practitioners.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(height: 10),
-                              itemBuilder: (context, index) {
-                                final practitioner = _practitioners[index];
-                                final selected =
-                                    _practitioner?.id == practitioner.id;
-                                return GestureDetector(
-                                  onTap: () {
-                                    setState(
-                                      () => _practitioner = practitioner,
-                                    );
-                                    _loadAvailabilityForPractitioner(
-                                      practitioner,
-                                    );
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.all(14),
-                                    decoration: BoxDecoration(
+                          ListView.separated(
+                            shrinkWrap: true,
+                            physics: const NeverScrollableScrollPhysics(),
+                            itemCount: _practitioners.length,
+                            separatorBuilder: (_, __) =>
+                                const SizedBox(height: 10),
+                            itemBuilder: (context, index) {
+                              final practitioner = _practitioners[index];
+                              final selected =
+                                  _practitioner?.id == practitioner.id;
+                              return GestureDetector(
+                                onTap: () {
+                                  setState(() => _practitioner = practitioner);
+                                  _loadAvailabilityForPractitioner(
+                                    practitioner,
+                                  );
+                                },
+                                child: Container(
+                                  padding: const EdgeInsets.all(14),
+                                  decoration: BoxDecoration(
+                                    color: selected
+                                        ? ElmaColors.light
+                                        : Colors.white,
+                                    border: Border.all(
                                       color: selected
-                                          ? ElmaColors.light
-                                          : Colors.white,
-                                      border: Border.all(
-                                        color: selected
-                                            ? ElmaColors.brand
-                                            : ElmaColors.border,
-                                        width: 1,
-                                      ),
-                                      borderRadius: BorderRadius.circular(16),
+                                          ? const Color(0xFF828D19)
+                                          : ElmaColors.border,
+                                      width: 1,
                                     ),
-                                    child: Row(
-                                      children: [
-                                        CircleAvatar(
-                                          radius: 22,
-                                          backgroundColor: const Color(
-                                            0xFFE7E1D6,
-                                          ),
-                                          child: Text(
-                                            practitioner.name
-                                                .substring(0, 1)
-                                                .toUpperCase(),
-                                            style: const TextStyle(
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 12),
-                                        Expanded(
-                                          child: Text(
-                                            practitioner.name,
-                                            style: const TextStyle(
-                                              fontSize: 16,
-                                              fontWeight: FontWeight.w700,
-                                            ),
-                                          ),
-                                        ),
-                                        if (selected)
-                                          const Icon(
-                                            Icons.check_circle,
-                                            color: ElmaColors.brand,
-                                          ),
-                                      ],
-                                    ),
+                                    borderRadius: BorderRadius.circular(16),
                                   ),
-                                );
-                              },
-                            ),
+                                  child: Row(
+                                    children: [
+                                      _catalogImage(
+                                        practitioner.imageUrl,
+                                        practitioner.name,
+                                      ),
+                                      const SizedBox(width: 12),
+                                      Expanded(
+                                        child: Text(
+                                          practitioner.name,
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.w700,
+                                          ),
+                                        ),
+                                      ),
+                                      if (selected)
+                                        const Icon(
+                                          Icons.check_circle,
+                                          color: const Color(0xFF828D19),
+                                        ),
+                                    ],
+                                  ),
+                                ),
+                              );
+                            },
                           ),
                         if (_practitioner != null) ...[
                           const SizedBox(height: 16),
@@ -1007,7 +1164,7 @@ class _BookingWizardState extends State<BookingWizard> {
                                       alignment: Alignment.center,
                                       decoration: BoxDecoration(
                                         color: selected
-                                            ? const Color(0xFF4E4A39)
+                                            ? const Color(0xFF828D19)
                                             : const Color(0xFFF5F2EA),
                                         borderRadius: BorderRadius.circular(18),
                                         border: Border.all(
@@ -1112,7 +1269,7 @@ class _BookingWizardState extends State<BookingWizard> {
                                     alignment: Alignment.center,
                                     decoration: BoxDecoration(
                                       color: selected
-                                          ? const Color(0xFF4E4A39)
+                                          ? const Color(0xFF828D19)
                                           : const Color(0xFFF5F2EA),
                                       borderRadius: BorderRadius.circular(18),
                                       border: Border.all(

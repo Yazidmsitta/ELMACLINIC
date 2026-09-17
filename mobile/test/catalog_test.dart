@@ -129,8 +129,8 @@ void main() {
       expect(find.byTooltip('Modifier Soin de dÃ©monstration'), findsNothing);
       await tester.tap(find.text('Afficher plus'));
       await tester.pumpAndSettle();
-      expect(find.text('DeuxiÃ¨me fiche'), findsOneWidget);
-      expect(find.text('Soin de dÃ©monstration'), findsOneWidget);
+      expect(find.text('Deuxième fiche'), findsOneWidget);
+      expect(find.text('Soin de démonstration'), findsOneWidget);
     },
   );
   testWidgets('USER clients can edit basic fields but cannot archive', (

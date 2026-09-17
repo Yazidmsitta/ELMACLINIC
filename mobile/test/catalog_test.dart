@@ -15,10 +15,23 @@ class FakeCatalog implements CatalogRepository {
   final List<(String, bool)> toggles = [];
   @override
   Future<ClientProfile> clientProfile(String id) async => ClientProfile(
-    client: CatalogEntry(id: id, name: 'Soin de d�monstration', phone: '0600000000'),
+    client: CatalogEntry(id: id, name: 'Soin de démonstration', phone: '0600000000'),
     today: const [],
     history: const [],
     packs: const [],
+  );
+
+  @override
+  Future<ClientPackSummary> adjustClientPackSessions(
+    String clientId,
+    String packId,
+    int delta,
+  ) async => ClientPackSummary(
+    packId: packId,
+    name: 'Pack test',
+    totalSessions: 8 + delta,
+    completedSessions: 1,
+    remainingSessions: 7 + delta,
   );
 
   @override
@@ -40,7 +53,7 @@ class FakeCatalog implements CatalogRepository {
       [
         CatalogEntry(
           id: '$page',
-          name: page == 1 ? 'Soin de démonstration' : 'Deuxième fiche',
+          name: page == 1 ? 'Soin de dÃ©monstration' : 'DeuxiÃ¨me fiche',
           durationMinutes: 30,
           priceCentimes: 20000,
           categoryId: 'category',
@@ -71,13 +84,6 @@ class FakeCatalog implements CatalogRepository {
 
   @override
   Future<void> archive(CatalogKind kind, String id) async {}
-  @override
-  Future<void> adjustClientPackSessions(
-    String clientId,
-    String packId,
-    int delta, {
-    String? reason,
-  }) async {}
   @override
   Future<PractitionerAvailability> availability(String id) async {
     if (failAvailability) throw const AppFailure('Planning indisponible.');
@@ -121,11 +127,11 @@ void main() {
       expect(find.text('Ajouter'), findsNothing);
       expect(find.text('Archiver'), findsNothing);
       expect(find.byType(Switch), findsNothing);
-      expect(find.byTooltip('Modifier Soin de démonstration'), findsNothing);
+      expect(find.byTooltip('Modifier Soin de dÃ©monstration'), findsNothing);
       await tester.tap(find.text('Afficher plus'));
       await tester.pumpAndSettle();
-      expect(find.text('Deuxième fiche'), findsOneWidget);
-      expect(find.text('Soin de démonstration'), findsOneWidget);
+      expect(find.text('DeuxiÃ¨me fiche'), findsOneWidget);
+      expect(find.text('Soin de dÃ©monstration'), findsOneWidget);
     },
   );
   testWidgets('USER clients can edit basic fields but cannot archive', (
@@ -143,7 +149,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Ajouter'), findsOneWidget);
     expect(find.text('Archiver'), findsNothing);
-    await tester.tap(find.byTooltip('Modifier Soin de démonstration'));
+    await tester.tap(find.byTooltip('Modifier Soin de dÃ©monstration'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(TextFormField, 'Email'), findsOneWidget);
     expect(find.widgetWithText(TextFormField, 'Prix (MAD) *'), findsNothing);
@@ -224,8 +230,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('09:00 – 18:00'), findsOneWidget);
+    expect(find.text('09:00 â€“ 18:00'), findsOneWidget);
     expect(find.text('Enregistrer'), findsNothing);
-    expect(find.text('Ajouter un créneau'), findsNothing);
+    expect(find.text('Ajouter un crÃ©neau'), findsNothing);
   });
 }

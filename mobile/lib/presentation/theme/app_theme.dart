@@ -1,18 +1,18 @@
 import 'package:flutter/material.dart';
 
 abstract final class ElmaColors {
-  static const brand = Color(0xFF6C6B50),
-      light = Color(0xFFE8E8DC),
-      dark = Color(0xFF4A4A37);
-  static const gold = Color(0xFF9E9C78),
+  static const brand = Color(0xFF2F5E4D),
+      light = Color(0xFFEAF4F0),
+      dark = Color(0xFF183D34);
+  static const gold = Color(0xFFD9B76C),
       canvas = Color(0xFFFAF9F6),
       surface = Color(0xFFF2F2EC);
-  static const border = Color(0xFFE4E4D8),
+  static const border = Color(0xFFE4E9E5),
       ink = Color(0xFF1C1C14),
-      secondary = Color(0xFF5C5C44),
-      muted = Color(0xFF9E9E84);
-  static const faint = Color(0xFFC4C4B0), white = Colors.white;
-  static const green = Color(0xFF2D7D6A), greenLight = Color(0xFFE8F4EF);
+      secondary = Color(0xFF4D6F63),
+      muted = Color(0xFF718A7D);
+  static const faint = Color(0xFFC7D3CF), white = Colors.white;
+  static const green = Color(0xFF2F5E4D), greenLight = Color(0xFFEAF4F0);
   static const blue = Color(0xFF4A7FAC), blueLight = Color(0xFFEAF2F9);
   static const amber = Color(0xFFD4902A), amberLight = Color(0xFFFEF6E8);
   static const red = Color(0xFFB54033), redLight = Color(0xFFFDECEA);
@@ -63,12 +63,12 @@ abstract final class ElmaDecor {
   static const brand = LinearGradient(
     begin: Alignment.topLeft,
     end: Alignment.bottomRight,
-    colors: [Color(0xFF7E7C5E), ElmaColors.brand],
+    colors: [Color(0xFF4D7A68), ElmaColors.brand],
   );
   static const login = LinearGradient(
     begin: Alignment(-.34, -1),
     end: Alignment(.34, 1),
-    colors: [Color(0xFF7E7C5E), ElmaColors.brand, ElmaColors.dark],
+    colors: [Color(0xFF4D7A68), ElmaColors.brand, ElmaColors.dark],
   );
   static const buttonShadow = [
     BoxShadow(color: Color(0x526C6B50), offset: Offset(0, 4), blurRadius: 16),

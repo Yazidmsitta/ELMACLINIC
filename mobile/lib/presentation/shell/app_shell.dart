@@ -11,7 +11,6 @@ import '../notifications/notifications_screen.dart';
 import '../../domain/staff/staff.dart';
 import '../staff/staff_screen.dart';
 import '../../domain/inventory/inventory.dart';
-import '../inventory/inventory_screen.dart';
 import '../../domain/expenses/expenses.dart';
 import '../expenses/expenses_screen.dart';
 import '../payments/payment_sheet.dart';
@@ -165,6 +164,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                       widget.appointments != null && widget.catalog != null
                       ? _openAppointment
                       : null,
+                  onReports: user.isAdmin && widget.reports != null
+                      ? () => Navigator.of(context).push<void>(
+                          MaterialPageRoute(
+                            builder: (_) =>
+                                ReportsScreen(repository: widget.reports!),
+                          ),
+                        )
+                      : null,
                   onTab: (index) => setState(() => _index = index),
                 ),
                 if (widget.appointments != null && widget.catalog != null)
@@ -197,11 +204,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                     subtitle: 'Prenez soin de chaque relation',
                     icon: 'Users',
                   ),
-                if (user.isAdmin && PaymentScope.of(context) != null)
+                if (PaymentScope.of(context) != null)
                   PaymentLedgerScreen(
                     key: ValueKey('payments:${user.id}:${user.role}'),
                     repository: PaymentScope.of(context)!,
+                    catalog: widget.catalog,
+                    appointments: widget.appointments,
                     refreshToken: _paymentRevision,
+                    canCollect: user.isAdmin,
                     onCollect: () => setState(() => _index = 1),
                   )
                 else
@@ -282,14 +292,6 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                           MaterialPageRoute(
                             builder: (_) =>
                                 StaffScreen(repository: widget.staff!),
-                          ),
-                        )
-                      : null,
-                  onInventory: user.isAdmin && widget.inventory != null
-                      ? () => Navigator.of(context).push<void>(
-                          MaterialPageRoute(
-                            builder: (_) =>
-                                InventoryScreen(repository: widget.inventory!),
                           ),
                         )
                       : null,

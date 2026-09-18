@@ -16,12 +16,17 @@ export async function GET(request: Request, context: Context) {
     const practitioner = await db.from('practitioners').select('id').eq('id', id).is('deleted_at', null).maybeSingle();
     databaseError(practitioner.error);
     if (!practitioner.data) throw new HttpError(404, 'Praticienne introuvable.');
-    const [shifts, absences] = await Promise.all([
+    const [shifts, absences, busy] = await Promise.all([
       db.from('practitioner_schedules').select('weekday,starts_at,ends_at').eq('practitioner_id', id).order('weekday').order('starts_at'),
       db.from('practitioner_time_off').select('starts_at,ends_at').eq('practitioner_id', id).order('starts_at'),
+      db.from('appointments').select('starts_at,ends_at').eq('practitioner_id', id)
+        .is('deleted_at', null).in('status', ['NEW', 'PENDING', 'CONFIRMED', 'IN_PROGRESS'])
+        .gte('starts_at', new Date().toISOString())
+        .lte('starts_at', new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString())
+        .order('starts_at'),
     ]);
-    databaseError(shifts.error); databaseError(absences.error);
-    return json({ data: { shifts: shifts.data, absences: absences.data, timezone: 'Africa/Casablanca' } });
+    databaseError(shifts.error); databaseError(absences.error); databaseError(busy.error);
+    return json({ data: { shifts: shifts.data, absences: absences.data, busy: busy.data, timezone: 'Africa/Casablanca' } });
   });
 }
 export async function PUT(request: Request, context: Context) {

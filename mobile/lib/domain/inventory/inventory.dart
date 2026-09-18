@@ -1,4 +1,5 @@
 import 'dart:typed_data';
+
 class StockProduct {
   const StockProduct(
     this.id,
@@ -30,11 +31,13 @@ class ProductDraft {
     this.unit,
     this.cost,
     this.threshold,
-    this.active,
-  );
+    this.active, {
+    this.initialQuantity = '0',
+  });
   final String sku, name, unit, threshold;
   final int cost;
   final bool active;
+  final String initialQuantity;
 }
 
 abstract interface class InventoryRepository {

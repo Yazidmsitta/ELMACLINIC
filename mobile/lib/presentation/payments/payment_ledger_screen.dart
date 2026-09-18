@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../domain/payments/payments.dart';
+import '../../domain/appointments/appointments.dart';
+import '../../domain/catalog/catalog.dart';
 import '../../domain/app_failure.dart';
+import '../catalog/client_detail_screen.dart';
 import '../appointments/clinic_time.dart';
 import '../theme/app_theme.dart';
 import '../widgets/elma_widgets.dart';
@@ -11,10 +14,16 @@ class PaymentLedgerScreen extends StatefulWidget {
     super.key,
     required this.repository,
     required this.onCollect,
+    this.canCollect = true,
+    this.catalog,
+    this.appointments,
     this.refreshToken = 0,
   });
   final PaymentsRepository repository;
   final VoidCallback onCollect;
+  final bool canCollect;
+  final CatalogRepository? catalog;
+  final AppointmentsRepository? appointments;
   final int refreshToken;
   @override
   State<PaymentLedgerScreen> createState() => _PaymentLedgerScreenState();
@@ -70,6 +79,21 @@ class _PaymentLedgerScreenState extends State<PaymentLedgerScreen> {
 
   String money(int cents) =>
       NumberFormat.currency(locale: 'fr', symbol: 'MAD').format(cents / 100);
+
+  Future<void> _openClient(PaymentEntry entry) async {
+    if (widget.catalog == null || entry.clientId == null) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => ClientDetailScreen(
+          entry: CatalogEntry(id: entry.clientId!, name: entry.clientName),
+          repository: widget.catalog!,
+          appointments: widget.appointments,
+          isAdmin: true,
+        ),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) => RefreshIndicator(
     onRefresh: () => _load(),
@@ -78,11 +102,13 @@ class _PaymentLedgerScreenState extends State<PaymentLedgerScreen> {
       children: [
         ElmaHeader(
           'Paiements',
-          trailing: TextButton.icon(
-            onPressed: widget.onCollect,
-            icon: const ElmaIcon('Plus', size: 15),
-            label: const Text('Encaisser'),
-          ),
+          trailing: widget.canCollect
+              ? TextButton.icon(
+                  onPressed: widget.onCollect,
+                  icon: const ElmaIcon('Plus', size: 15),
+                  label: const Text('Encaisser'),
+                )
+              : null,
         ),
         if (_ledger != null)
           Padding(
@@ -139,68 +165,87 @@ class _PaymentLedgerScreenState extends State<PaymentLedgerScreen> {
             ),
           ),
         for (final entry in _items)
-          Container(
-            margin: const EdgeInsets.fromLTRB(20, 0, 20, 10),
-            padding: const EdgeInsets.all(16),
-            decoration: BoxDecoration(
-              color: Colors.white,
-              border: Border.all(color: ElmaColors.border),
-              borderRadius: BorderRadius.circular(16),
-            ),
-            child: Row(
-              children: [
-                const ElmaIcon('Wallet'),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        entry.clientName,
-                        style: const TextStyle(
-                          fontSize: 14,
-                          fontWeight: FontWeight.w600,
+          InkWell(
+            onTap: entry.clientId == null ? null : () => _openClient(entry),
+            borderRadius: BorderRadius.circular(16),
+            child: Container(
+              margin: const EdgeInsets.fromLTRB(20, 0, 20, 10),
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                border: Border.all(color: ElmaColors.border),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: Row(
+                children: [
+                  const ElmaIcon('Wallet'),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          entry.clientName,
+                          style: const TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      Text(
-                        entry.services,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: ElmaColors.muted,
+                        Text(
+                          entry.remaining > 0
+                              ? 'Reste à payer : ${money(entry.remaining)}'
+                              : 'Solde payé',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: entry.remaining > 0
+                                ? ElmaColors.red
+                                : ElmaColors.green,
+                            fontWeight: FontWeight.w600,
+                          ),
                         ),
-                      ),
-                      Text(
-                        '${DateFormat('dd/MM/yyyy').format(ClinicTime.local(entry.paidAt))} · ${entry.method.label}',
-                        style: const TextStyle(
-                          fontSize: 10,
-                          color: ElmaColors.muted,
+                        Text(
+                          entry.services,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: ElmaColors.muted,
+                          ),
                         ),
-                      ),
-                    ],
+                        Text(
+                          '${DateFormat('dd/MM/yyyy').format(ClinicTime.local(entry.paidAt))} · ${entry.method.label}',
+                          style: const TextStyle(
+                            fontSize: 10,
+                            color: ElmaColors.muted,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Flexible(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text(
-                        money(entry.amount),
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.w700,
+                  const SizedBox(width: 8),
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.end,
+                      children: [
+                        Text(
+                          money(entry.amount),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
-                      ),
-                      const Text(
-                        'Encaissé',
-                        style: TextStyle(fontSize: 11, color: ElmaColors.green),
-                      ),
-                    ],
+                        const Text(
+                          'Encaissé',
+                          style: TextStyle(
+                            fontSize: 11,
+                            color: ElmaColors.green,
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         if (_busy)

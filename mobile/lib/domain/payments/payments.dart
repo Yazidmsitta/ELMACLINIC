@@ -41,12 +41,16 @@ class PaymentEntry {
     this.services,
     this.amount,
     this.method,
-    this.paidAt,
-  );
+    this.paidAt, {
+    this.clientId,
+    this.remaining = 0,
+  });
   final String id, clientName, services;
   final int amount;
   final PaymentMethod method;
   final DateTime paidAt;
+  final String? clientId;
+  final int remaining;
 }
 
 class PaymentLedger {

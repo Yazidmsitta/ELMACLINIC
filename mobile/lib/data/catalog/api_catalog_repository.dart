@@ -52,6 +52,7 @@ class ApiCatalogRepository implements CatalogRepository {
           'practitioners/$id/availability',
         );
         final data = response.data!['data'] as Map<String, dynamic>;
+        final busyRows = data['busy'];
         return PractitionerAvailability(
           (data['shifts'] as List)
               .map(
@@ -65,6 +66,14 @@ class ApiCatalogRepository implements CatalogRepository {
           (data['absences'] as List)
               .map(
                 (dynamic s) => TimeOff(
+                  DateTime.parse(s['starts_at'] as String),
+                  DateTime.parse(s['ends_at'] as String),
+                ),
+              )
+              .toList(),
+          busy: (busyRows is List ? busyRows : const <dynamic>[])
+              .map(
+                (dynamic s) => BusySlot(
                   DateTime.parse(s['starts_at'] as String),
                   DateTime.parse(s['ends_at'] as String),
                 ),

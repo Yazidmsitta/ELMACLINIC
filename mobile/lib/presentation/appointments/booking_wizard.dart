@@ -154,7 +154,7 @@ class _BookingWizardState extends State<BookingWizard> {
       if (!mounted) return;
       final dates = <DateTime>[];
       final now = DateTime.now();
-      for (var offset = 0; offset < 14; offset++) {
+      for (var offset = 0; offset < 90; offset++) {
         final date = DateTime(now.year, now.month, now.day + offset);
         if (_slotsForDay(
           date,
@@ -204,10 +204,17 @@ class _BookingWizardState extends State<BookingWizard> {
           minute % 60,
         );
         final endDate = slotDate.add(Duration(minutes: durationMinutes));
-        final blocked = availability.absences.any(
-          (absence) =>
-              slotDate.isBefore(absence.end) && endDate.isAfter(absence.start),
-        );
+        final blocked =
+            availability.absences.any(
+              (absence) =>
+                  slotDate.isBefore(absence.end) &&
+                  endDate.isAfter(absence.start),
+            ) ||
+            availability.busy.any(
+              (booking) =>
+                  slotDate.isBefore(booking.end) &&
+                  endDate.isAfter(booking.start),
+            );
         if (!blocked && !slotDate.isBefore(DateTime.now())) {
           slots.add(TimeOfDay(hour: slotDate.hour, minute: slotDate.minute));
         }
@@ -229,9 +236,48 @@ class _BookingWizardState extends State<BookingWizard> {
     return unique;
   }
 
+  List<TimeOfDay> _allSlotsForDay(
+    DateTime date,
+    PractitionerAvailability availability, {
+    int durationMinutes = 30,
+  }) {
+    final slots = <TimeOfDay>[];
+    for (final shift in availability.shifts.where(
+      (shift) => shift.weekday == date.weekday,
+    )) {
+      final startMinutes = _timeToMinutes(shift.start);
+      final endMinutes = _timeToMinutes(shift.end);
+      for (
+        var minute = startMinutes;
+        minute + durationMinutes <= endMinutes;
+        minute += 30
+      ) {
+        slots.add(TimeOfDay(hour: minute ~/ 60, minute: minute % 60));
+      }
+    }
+    return slots;
+  }
+
   int _timeToMinutes(String value) {
     final pieces = value.split(':');
     return int.parse(pieces[0]) * 60 + int.parse(pieces[1]);
+  }
+
+  DateTime? _firstSelectableDate() {
+    final availability = _availability;
+    if (availability == null) return null;
+    final today = DateTime.now();
+    for (var offset = 0; offset < 90; offset++) {
+      final date = DateTime(today.year, today.month, today.day + offset);
+      if (_slotsForDay(
+        date,
+        availability,
+        durationMinutes: _bookingDurationMinutes,
+      ).isNotEmpty) {
+        return date;
+      }
+    }
+    return null;
   }
 
   Future<void> _loadServices() async {
@@ -310,6 +356,34 @@ class _BookingWizardState extends State<BookingWizard> {
     );
   }
 
+  Widget _packImage(ClinicPack pack) {
+    final name = pack.name.toLowerCase();
+    final icon = name.contains('laser')
+        ? Icons.auto_awesome
+        : name.contains('visage') || name.contains('facial')
+        ? Icons.face_retouching_natural
+        : name.contains('corps') || name.contains('massage')
+        ? Icons.spa_outlined
+        : Icons.card_giftcard_outlined;
+    return Container(
+      width: 48,
+      height: 48,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE9E8DE),
+        borderRadius: BorderRadius.circular(12),
+        image: pack.imageUrl == null
+            ? null
+            : DecorationImage(
+                image: NetworkImage(pack.imageUrl!),
+                fit: BoxFit.cover,
+              ),
+      ),
+      child: pack.imageUrl == null
+          ? Icon(icon, color: const Color(0xFF828D19), size: 22)
+          : null,
+    );
+  }
+
   Future<void> _loadPacks() async {
     if (widget.packs == null) return;
     setState(() => _loadingPacks = true);
@@ -343,15 +417,16 @@ class _BookingWizardState extends State<BookingWizard> {
     _ => _quote != null,
   };
   BookingSelection get _selection {
-    final serviceIds = <String>[
-      ..._services.map((service) => service.id),
-      ..._selectedPacks.expand((pack) => pack.items.keys),
-    ];
+    final serviceIds = _services.map((service) => service.id).toList();
     return BookingSelection(
       _client!.id,
       _practitioner!.id,
       serviceIds.toSet().toList(),
       widget.websiteBooking?.start ?? ClinicTime.at(_day!, _time!),
+      packIds: _selectedPacks
+          .map((pack) => pack.id)
+          .whereType<String>()
+          .toList(),
     );
   }
 
@@ -465,6 +540,7 @@ class _BookingWizardState extends State<BookingWizard> {
                               child: GestureDetector(
                                 onTap: () => setState(() {
                                   _mode = _BookingMode.prestations;
+                                  _selectedPacks.clear();
                                 }),
                                 child: Container(
                                   height: 46,
@@ -498,6 +574,7 @@ class _BookingWizardState extends State<BookingWizard> {
                               child: GestureDetector(
                                 onTap: () => setState(() {
                                   _mode = _BookingMode.packs;
+                                  _services.clear();
                                 }),
                                 child: Container(
                                   height: 46,
@@ -577,18 +654,16 @@ class _BookingWizardState extends State<BookingWizard> {
                           const Text(
                             'Choisir la prestation',
                             style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w700,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
                               color: Color(0xFF1B1B1B),
-                              height: 1.1,
-                              fontFamily: 'DM Serif Display',
                             ),
                           ),
                           const SizedBox(height: 6),
                           const Text(
                             'Sélectionnez le soin ou service',
                             style: TextStyle(
-                              fontSize: 15,
+                              fontSize: 13,
                               color: Color(0xFF7B766D),
                             ),
                           ),
@@ -692,6 +767,7 @@ class _BookingWizardState extends State<BookingWizard> {
                                                   service.id == entry.id,
                                             );
                                           } else {
+                                            _selectedPacks.clear();
                                             _services.add(entry);
                                           }
                                         }),
@@ -762,10 +838,10 @@ class _BookingWizardState extends State<BookingWizard> {
                                                             entry.name,
                                                             style:
                                                                 const TextStyle(
-                                                                  fontSize: 18,
+                                                                  fontSize: 15,
                                                                   fontWeight:
                                                                       FontWeight
-                                                                          .w700,
+                                                                          .w600,
                                                                   color: Color(
                                                                     0xFF1B1B1B,
                                                                   ),
@@ -840,18 +916,16 @@ class _BookingWizardState extends State<BookingWizard> {
                           const Text(
                             'Choisir le pack',
                             style: TextStyle(
-                              fontSize: 32,
-                              fontWeight: FontWeight.w700,
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
                               color: Color(0xFF1B1B1B),
-                              height: 1.1,
-                              fontFamily: 'DM Serif Display',
                             ),
                           ),
                           const SizedBox(height: 6),
                           const Text(
                             'Sélectionnez un ou plusieurs packs',
                             style: TextStyle(
-                              fontSize: 15,
+                              fontSize: 13,
                               color: Color(0xFF7B766D),
                             ),
                           ),
@@ -901,6 +975,7 @@ class _BookingWizardState extends State<BookingWizard> {
                                                 (item) => item.id == pack.id,
                                               );
                                             } else {
+                                              _services.clear();
                                               _selectedPacks.add(pack);
                                             }
                                           }),
@@ -926,25 +1001,7 @@ class _BookingWizardState extends State<BookingWizard> {
                                             ),
                                             child: Row(
                                               children: [
-                                                Container(
-                                                  width: 48,
-                                                  height: 48,
-                                                  alignment: Alignment.center,
-                                                  decoration: BoxDecoration(
-                                                    color: const Color(
-                                                      0xFFE9E8DE,
-                                                    ),
-                                                    borderRadius:
-                                                        BorderRadius.circular(
-                                                          12,
-                                                        ),
-                                                  ),
-                                                  child: const Icon(
-                                                    Icons.auto_awesome_outlined,
-                                                    color: Color(0xFF777665),
-                                                    size: 22,
-                                                  ),
-                                                ),
+                                                _packImage(pack),
                                                 const SizedBox(width: 12),
                                                 Expanded(
                                                   child: Column(
@@ -955,9 +1012,9 @@ class _BookingWizardState extends State<BookingWizard> {
                                                       Text(
                                                         pack.name,
                                                         style: const TextStyle(
-                                                          fontSize: 18,
+                                                          fontSize: 15,
                                                           fontWeight:
-                                                              FontWeight.w700,
+                                                              FontWeight.w600,
                                                         ),
                                                       ),
                                                       const SizedBox(height: 4),
@@ -1113,7 +1170,8 @@ class _BookingWizardState extends State<BookingWizard> {
                               );
                             },
                           ),
-                        if (_practitioner != null) ...[
+                        if (_selectedCategoryId == '__legacy_availability__' &&
+                            _practitioner != null) ...[
                           const SizedBox(height: 16),
                           Text(
                             'Disponibilités de ${_practitioner!.name}',
@@ -1236,60 +1294,49 @@ class _BookingWizardState extends State<BookingWizard> {
                             'Sélectionnez d’abord une praticienne.',
                             style: TextStyle(color: ElmaColors.muted),
                           )
-                        else if (_availabilityDates.isEmpty)
+                        else if (_firstSelectableDate() == null)
                           const Text(
                             'Aucune disponibilité n’est proposée pour cette praticienne.',
                             style: TextStyle(color: ElmaColors.muted),
                           )
                         else ...[
-                          SizedBox(
-                            height: 42,
-                            child: ListView.separated(
-                              scrollDirection: Axis.horizontal,
-                              itemCount: _availabilityDates.length,
-                              separatorBuilder: (_, __) =>
-                                  const SizedBox(width: 10),
-                              itemBuilder: (context, index) {
-                                final date = _availabilityDates[index];
-                                final selected =
-                                    _day != null &&
-                                    _day!.year == date.year &&
-                                    _day!.month == date.month &&
-                                    _day!.day == date.day;
-                                return GestureDetector(
-                                  onTap: () => setState(() {
-                                    _day = date;
-                                    _selectedAvailabilityDate = date;
-                                    _time = null;
-                                  }),
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                      horizontal: 14,
-                                    ),
-                                    alignment: Alignment.center,
-                                    decoration: BoxDecoration(
-                                      color: selected
-                                          ? const Color(0xFF828D19)
-                                          : const Color(0xFFF5F2EA),
-                                      borderRadius: BorderRadius.circular(18),
-                                      border: Border.all(
-                                        color: const Color(0xFFE4E1D6),
-                                        width: 1,
-                                      ),
-                                    ),
-                                    child: Text(
-                                      DateFormat('EEE d', 'fr').format(date),
-                                      style: TextStyle(
-                                        fontWeight: FontWeight.w600,
-                                        color: selected
-                                            ? Colors.white
-                                            : const Color(0xFF3A372F),
-                                      ),
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
+                          Builder(
+                            builder: (context) {
+                              final firstSelectable = _firstSelectableDate();
+                              final selectedDate =
+                                  _selectedAvailabilityDate != null &&
+                                      _slotsForDay(
+                                        _selectedAvailabilityDate!,
+                                        _availability!,
+                                        durationMinutes:
+                                            _bookingDurationMinutes,
+                                      ).isNotEmpty
+                                  ? _selectedAvailabilityDate!
+                                  : firstSelectable!;
+                              return CalendarDatePicker(
+                                initialDate: selectedDate,
+                                firstDate: DateTime(
+                                  DateTime.now().year,
+                                  DateTime.now().month,
+                                  DateTime.now().day,
+                                ),
+                                lastDate: DateTime(
+                                  DateTime.now().year,
+                                  DateTime.now().month,
+                                  DateTime.now().day + 89,
+                                ),
+                                selectableDayPredicate: (date) => _slotsForDay(
+                                  date,
+                                  _availability!,
+                                  durationMinutes: _bookingDurationMinutes,
+                                ).isNotEmpty,
+                                onDateChanged: (date) => setState(() {
+                                  _day = date;
+                                  _selectedAvailabilityDate = date;
+                                  _time = null;
+                                }),
+                              );
+                            },
                           ),
                           const SizedBox(height: 16),
                           if (_day != null)
@@ -1297,20 +1344,38 @@ class _BookingWizardState extends State<BookingWizard> {
                               spacing: 10,
                               runSpacing: 10,
                               children:
-                                  _slotsForDay(
+                                  _allSlotsForDay(
                                     _day!,
                                     _availability!,
                                     durationMinutes: _bookingDurationMinutes,
                                   ).map((slot) {
+                                    final available =
+                                        _slotsForDay(
+                                          _day!,
+                                          _availability!,
+                                          durationMinutes:
+                                              _bookingDurationMinutes,
+                                        ).any(
+                                          (item) =>
+                                              item.hour == slot.hour &&
+                                              item.minute == slot.minute,
+                                        );
                                     final selected =
                                         _time != null &&
                                         _time!.hour == slot.hour &&
                                         _time!.minute == slot.minute;
                                     return ChoiceChip(
                                       selected: selected,
+                                      disabledColor: const Color(0xFFE4E1E6),
+                                      labelStyle: TextStyle(
+                                        color: available
+                                            ? null
+                                            : const Color(0xFF9B969F),
+                                      ),
                                       label: Text(slot.format(context)),
-                                      onSelected: (_) =>
-                                          setState(() => _time = slot),
+                                      onSelected: available
+                                          ? (_) => setState(() => _time = slot)
+                                          : null,
                                     );
                                   }).toList(),
                             )

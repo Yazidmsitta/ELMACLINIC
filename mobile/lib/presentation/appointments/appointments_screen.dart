@@ -437,7 +437,12 @@ class _AppointmentsScreenState extends State<AppointmentsScreen>
                       _load();
                     },
                   ),
-                  for (final status in AppointmentStatus.values)
+                  for (final status in AppointmentStatus.values.where(
+                    (status) => ![
+                      AppointmentStatus.fresh,
+                      AppointmentStatus.pending,
+                    ].contains(status),
+                  ))
                     ElmaFilterChip(
                       label: Text(status.label),
                       selected: _status == status,

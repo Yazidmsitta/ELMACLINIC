@@ -18,6 +18,7 @@ class HomeScreen extends StatefulWidget {
     this.refreshToken = 0,
     this.onCreateAppointment,
     this.onAppointment,
+    this.onReports,
   });
   final AppUser user;
   final int refreshToken;
@@ -25,6 +26,7 @@ class HomeScreen extends StatefulWidget {
   final DashboardRepository? repository;
   final Future<void> Function()? onCreateAppointment;
   final Future<void> Function(String)? onAppointment;
+  final VoidCallback? onReports;
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
@@ -322,20 +324,19 @@ class _HomeScreenState extends State<HomeScreen> {
                             () => widget.onTab(1),
                           ),
                         ),
-                        if (widget.user.isAdmin)
-                          SizedBox(
-                            width: (constraints.maxWidth - 12) / 2,
-                            child: _metric(
-                              'Chiffre du jour',
-                              data.revenueCentimes == null
-                                  ? '—'
-                                  : money.format(data.revenueCentimes! / 100),
-                              '💰',
-                              ElmaColors.greenLight,
-                              ElmaColors.green,
-                              () => widget.onTab(3),
-                            ),
+                        SizedBox(
+                          width: (constraints.maxWidth - 12) / 2,
+                          child: _metric(
+                            'Chiffre du jour',
+                            data.revenueCentimes == null
+                                ? '—'
+                                : money.format(data.revenueCentimes! / 100),
+                            '💰',
+                            ElmaColors.greenLight,
+                            ElmaColors.green,
+                            () => widget.onTab(3),
                           ),
+                        ),
                         SizedBox(
                           width: (constraints.maxWidth - 12) / 2,
                           child: _metric(
@@ -458,7 +459,7 @@ class _HomeScreenState extends State<HomeScreen> {
                         ),
                       ),
                     ),
-                  if (widget.user.isAdmin) ...[
+                  if (data.week.isNotEmpty) ...[
                     const SizedBox(height: 20),
                     Container(
                       width: double.infinity,
@@ -533,9 +534,9 @@ class _HomeScreenState extends State<HomeScreen> {
                               side: const BorderSide(color: ElmaColors.border),
                             ),
                             child: InkWell(
-                              onTap: () =>
-                                  action.$1 == 'Rapports' ||
-                                      action.$1 == 'En ligne'
+                                onTap: () => action.$1 == 'Rapports'
+                                  ? widget.onReports?.call()
+                                  : action.$1 == 'En ligne'
                                   ? _notice(action.$1)
                                   : widget.onTab(action.$3),
                               child: Padding(

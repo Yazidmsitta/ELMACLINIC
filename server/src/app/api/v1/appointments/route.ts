@@ -21,8 +21,9 @@ export async function POST(request:Request) {
   return handle(async () => {
     const {db}=await authenticate(request);
     const body=bookingCreate.parse(await request.json());
-    const result=await db.rpc('create_manual_appointment',{
+    const result=await db.rpc(body.pack_ids.length ? 'create_manual_appointment_cart' : 'create_manual_appointment',{
       client:body.client_id,practitioner:body.practitioner_id,service_ids:body.service_ids,slot_start:body.starts_at,
+      ...(body.pack_ids.length ? {pack_ids:body.pack_ids} : {}),
       booking_notes:body.notes??null,request_key:body.request_id,
       expected_total:body.expected_total_centimes,expected_duration:body.expected_duration_minutes,
     });

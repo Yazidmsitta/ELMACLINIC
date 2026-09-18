@@ -27,6 +27,35 @@ class _PacksScreenState extends State<PacksScreen> {
   bool _busy = true, _more = false;
   int _page = 0;
   String? _error;
+
+  Widget _packImage(ClinicPack pack, {double size = 56}) {
+    final name = pack.name.toLowerCase();
+    final icon = name.contains('laser')
+        ? Icons.auto_awesome
+        : name.contains('visage') || name.contains('facial')
+        ? Icons.face_retouching_natural
+        : name.contains('corps') || name.contains('massage')
+        ? Icons.spa_outlined
+        : Icons.card_giftcard_outlined;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE9E8DE),
+        borderRadius: BorderRadius.circular(12),
+        image: pack.imageUrl == null
+            ? null
+            : DecorationImage(
+                image: NetworkImage(pack.imageUrl!),
+                fit: BoxFit.cover,
+              ),
+      ),
+      child: pack.imageUrl == null
+          ? Icon(icon, color: ElmaColors.brand, size: size * .42)
+          : null,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -118,66 +147,95 @@ class _PacksScreenState extends State<PacksScreen> {
                 for (final pack in _packs)
                   Container(
                     margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: pack.active
+                          ? Colors.white
+                          : const Color(0xFFF4F3EE),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: ElmaColors.border),
                     ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (pack.imageUrl != null)
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              pack.imageUrl!,
-                              height: 140,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, error, stack) =>
-                                  const Text('Image indisponible'),
+                        ListTile(
+                          contentPadding: const EdgeInsets.fromLTRB(
+                            14,
+                            8,
+                            14,
+                            4,
+                          ),
+                          leading: _packImage(pack),
+                          title: Text(
+                            pack.name,
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                              fontFamily: 'Plus Jakarta Sans',
                             ),
                           ),
-                        Text(
-                          pack.name,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
+                          subtitle: Text(
+                            '${pack.totalSessions} séance(s) · ${(pack.price / 100).toStringAsFixed(2)} MAD',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: ElmaColors.muted,
+                              fontFamily: 'Plus Jakarta Sans',
+                            ),
                           ),
                         ),
-                        Text(
-                          '${(pack.price / 100).toStringAsFixed(2)} MAD · ${pack.totalSessions} séance(s) · ${pack.active ? 'Actif' : 'Inactif'}',
-                        ),
-                        if (pack.description.isNotEmpty) Text(pack.description),
+                        if (pack.description.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                pack.description,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: ElmaColors.muted,
+                                  fontFamily: 'Plus Jakarta Sans',
+                                ),
+                              ),
+                            ),
+                          ),
                         for (final item in pack.items.entries)
-                          Text(
-                            '${_services.where((s) => s.id == item.key).firstOrNull?.name ?? 'Prestation archivée'} · ${item.value} séance(s)',
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                '${_services.where((s) => s.id == item.key).firstOrNull?.name ?? 'Prestation archivée'} · ${item.value} séance(s)',
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                            ),
                           ),
                         if (widget.isAdmin)
-                          Wrap(
-                            children: [
-                              TextButton(
-                                onPressed: _busy ? null : () => _edit(pack),
-                                child: const Text('Modifier'),
-                              ),
-                              TextButton(
-                                onPressed: _busy
-                                    ? null
-                                    : () async {
-                                        await showModalBottomSheet<void>(
-                                          context: context,
-                                          isScrollControlled: true,
-                                          builder: (_) => PackPhotoSheet(
-                                            entry: pack,
-                                            repository: widget.repository,
-                                          ),
-                                        );
-                                        if (mounted) await _load();
-                                      },
-                                child: const Text('Photo'),
-                              ),
-                            ],
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Wrap(
+                              children: [
+                                TextButton(
+                                  onPressed: _busy ? null : () => _edit(pack),
+                                  child: const Text('Modifier'),
+                                ),
+                                TextButton(
+                                  onPressed: _busy
+                                      ? null
+                                      : () async {
+                                          await showModalBottomSheet<void>(
+                                            context: context,
+                                            isScrollControlled: true,
+                                            builder: (_) => PackPhotoSheet(
+                                              entry: pack,
+                                              repository: widget.repository,
+                                            ),
+                                          );
+                                          if (mounted) await _load();
+                                        },
+                                  child: const Text('Photo'),
+                                ),
+                              ],
+                            ),
                           ),
                       ],
                     ),

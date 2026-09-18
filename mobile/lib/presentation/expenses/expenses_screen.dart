@@ -242,14 +242,14 @@ class _ExpensesScreenState extends State<ExpensesScreen> {
                                         CrossAxisAlignment.start,
                                     children: [
                                       Text(
-                                        expense.description,
+                                        expense.category,
                                         style: const TextStyle(
                                           fontSize: 14,
                                           fontWeight: FontWeight.w600,
                                         ),
                                       ),
                                       Text(
-                                        '${expense.category} · ${DateFormat.yMMMd('fr').format(DateTime.parse(expense.spentOn))}',
+                                        '${expense.description} · ${DateFormat.yMMMd('fr').format(DateTime.parse(expense.spentOn))}',
                                         style: const TextStyle(
                                           fontSize: 11,
                                           color: ElmaColors.muted,
@@ -334,20 +334,10 @@ class ExpenseSheet extends StatefulWidget {
 }
 
 class _ExpenseSheetState extends State<ExpenseSheet> {
-  static const categories = [
-    'Produits',
-    'Équipement',
-    'Salaires',
-    'Loyer',
-    'Charges',
-    'Marketing',
-    'Maintenance',
-    'Autre',
-  ];
   final _form = GlobalKey<FormState>();
   late final TextEditingController _description, _amount;
+  late final TextEditingController _label;
   final _reason = TextEditingController();
-  late String _category;
   late DateTime _date;
   final _requestId = bookingRequestId();
   bool _busy = false, _submitted = false;
@@ -357,12 +347,12 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
     super.initState();
     final expense = widget.expense;
     _description = TextEditingController(text: expense?.description);
+    _label = TextEditingController(text: expense?.category ?? '');
     _amount = TextEditingController(
       text: expense == null
           ? ''
           : '${expense.amount ~/ 100}.${(expense.amount % 100).toString().padLeft(2, '0')}',
     );
-    _category = expense?.category ?? categories.first;
     _date = expense == null
         ? ClinicTime.now()
         : DateTime.parse(expense.spentOn);
@@ -371,6 +361,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
   @override
   void dispose() {
     _description.dispose();
+    _label.dispose();
     _amount.dispose();
     _reason.dispose();
     super.dispose();
@@ -392,7 +383,7 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
       } else {
         final draft = ExpenseDraft(
           _description.text.trim(),
-          _category,
+          _label.text.trim(),
           parseMadCentimes(_amount.text)!,
           DateFormat('yyyy-MM-dd').format(_date),
         );
@@ -467,26 +458,17 @@ class _ExpenseSheetState extends State<ExpenseSheet> {
                           : null,
                     )
                   else ...[
-                    const Text(
-                      'CATÉGORIE',
-                      style: TextStyle(
-                        fontSize: 12,
-                        color: ElmaColors.muted,
-                        fontWeight: FontWeight.w600,
+                    TextFormField(
+                      controller: _label,
+                      enabled: !locked,
+                      maxLength: 120,
+                      decoration: const InputDecoration(
+                        labelText: 'Libellé',
+                        hintText: 'Ex. Achat produits soins',
                       ),
-                    ),
-                    Wrap(
-                      spacing: 8,
-                      children: [
-                        for (final category in {...categories, _category})
-                          ChoiceChip(
-                            label: Text(category),
-                            selected: _category == category,
-                            onSelected: locked
-                                ? null
-                                : (_) => setState(() => _category = category),
-                          ),
-                      ],
+                      validator: (value) => (value?.trim().isEmpty ?? true)
+                          ? 'Libellé obligatoire.'
+                          : null,
                     ),
                     const SizedBox(height: 16),
                     TextFormField(

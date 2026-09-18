@@ -114,8 +114,18 @@ class TimeOff {
   final DateTime start, end;
 }
 
+class BusySlot {
+  const BusySlot(this.start, this.end);
+  final DateTime start, end;
+}
+
 class PractitionerAvailability {
-  const PractitionerAvailability(this.shifts, this.absences);
+  const PractitionerAvailability(
+    this.shifts,
+    this.absences, {
+    this.busy = const [],
+  });
   final List<WeeklyShift> shifts;
   final List<TimeOff> absences;
+  final List<BusySlot> busy;
 }

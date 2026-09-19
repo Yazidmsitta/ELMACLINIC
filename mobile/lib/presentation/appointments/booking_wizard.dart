@@ -95,11 +95,7 @@ class _BookingWizardState extends State<BookingWizard> {
   }
 
   int get _bookingDurationMinutes {
-    final prestationMinutes = _services.fold<int>(
-      0,
-      (total, service) => total + (service.durationMinutes ?? 30),
-    );
-    return prestationMinutes + (_selectedPacks.isNotEmpty ? 30 : 0);
+    return _services.isNotEmpty || _selectedPacks.isNotEmpty ? 60 : 0;
   }
 
   @override
@@ -153,7 +149,7 @@ class _BookingWizardState extends State<BookingWizard> {
       final availability = await widget.catalog.availability(practitioner.id);
       if (!mounted) return;
       final dates = <DateTime>[];
-      final now = DateTime.now();
+      final now = ClinicTime.now();
       for (var offset = 0; offset < 90; offset++) {
         final date = DateTime(now.year, now.month, now.day + offset);
         if (_slotsForDay(
@@ -196,12 +192,9 @@ class _BookingWizardState extends State<BookingWizard> {
         minute + durationMinutes <= endMinutes;
         minute += 30
       ) {
-        final slotDate = DateTime(
-          utcDay.year,
-          utcDay.month,
-          utcDay.day,
-          minute ~/ 60,
-          minute % 60,
+        final slotDate = ClinicTime.at(
+          utcDay,
+          TimeOfDay(hour: minute ~/ 60, minute: minute % 60),
         );
         final endDate = slotDate.add(Duration(minutes: durationMinutes));
         final blocked =
@@ -215,7 +208,7 @@ class _BookingWizardState extends State<BookingWizard> {
                   slotDate.isBefore(booking.end) &&
                   endDate.isAfter(booking.start),
             );
-        if (!blocked && !slotDate.isBefore(DateTime.now())) {
+        if (!blocked && !slotDate.isBefore(ClinicTime.now())) {
           slots.add(TimeOfDay(hour: slotDate.hour, minute: slotDate.minute));
         }
       }
@@ -266,7 +259,7 @@ class _BookingWizardState extends State<BookingWizard> {
   DateTime? _firstSelectableDate() {
     final availability = _availability;
     if (availability == null) return null;
-    final today = DateTime.now();
+    final today = ClinicTime.now();
     for (var offset = 0; offset < 90; offset++) {
       final date = DateTime(today.year, today.month, today.day + offset);
       if (_slotsForDay(
@@ -1316,14 +1309,14 @@ class _BookingWizardState extends State<BookingWizard> {
                               return CalendarDatePicker(
                                 initialDate: selectedDate,
                                 firstDate: DateTime(
-                                  DateTime.now().year,
-                                  DateTime.now().month,
-                                  DateTime.now().day,
+                                  ClinicTime.now().year,
+                                  ClinicTime.now().month,
+                                  ClinicTime.now().day,
                                 ),
                                 lastDate: DateTime(
-                                  DateTime.now().year,
-                                  DateTime.now().month,
-                                  DateTime.now().day + 89,
+                                  ClinicTime.now().year,
+                                  ClinicTime.now().month,
+                                  ClinicTime.now().day + 89,
                                 ),
                                 selectableDayPredicate: (date) => _slotsForDay(
                                   date,

@@ -29,9 +29,9 @@ beforeAll(async () => {
 },30000);
 afterAll(async()=>{await db.close();});
 async function create(key:string,slot=start,amount=20000) {
-  return db.query<{id:string}>('select create_manual_appointment($1,$2,$3,$4,$5,$6,$7,$8) as id',[client,practitioner,[service],slot,'Notes',key,amount,30]);
+  return db.query<{id:string}>('select create_manual_appointment($1,$2,$3,$4,$5,$6,$7,$8) as id',[client,practitioner,[service],slot,'Notes',key,amount,60]);
 }
-async function createCart(key:string,slot:string,serviceIds:string[]=[],packIds:string[]=[pack],amount=480000,duration=30) {
+async function createCart(key:string,slot:string,serviceIds:string[]=[],packIds:string[]=[pack],amount=480000,duration=60) {
   return db.query<{id:string}>('select create_manual_appointment_cart($1,$2,$3,$4,$5,$6,$7,$8,$9) as id',[client,practitioner,serviceIds,packIds,slot,'Notes',key,amount,duration]);
 }
 test('USER creates manual booking with authoritative price snapshots and idempotency',async()=>{
@@ -47,14 +47,14 @@ test('USER creates manual booking with authoritative price snapshots and idempot
 test('competing bookings cannot reserve an occupied interval; boundary adjacency is valid',async()=>{
   const result=await Promise.allSettled([create('10000000-0000-4000-8000-000000000002'),create('10000000-0000-4000-8000-000000000003')]);
   expect(result.every(r=>r.status==='rejected')).toBe(true);
-  const adjacent=new Date(new Date(start).getTime()+30*60000).toISOString();
+  const adjacent=new Date(new Date(start).getTime()+60*60000).toISOString();
   expect((await create('10000000-0000-4000-8000-000000000004',adjacent)).rows[0].id).toBeTruthy();
 });
 test('pack booking uses the pack price while duration comes from included services',async()=>{
   const slot=new Date(new Date(start).getTime()+24*3600000).toISOString();
   const quote=(await db.query<{data:{total_centimes:number;duration_minutes:number;services:Array<Record<string,unknown>>}}>('select quote_appointment_cart($1,$2,$3,$4,$5) as data',[client,practitioner,[],[pack],slot])).rows[0].data;
   expect(quote.total_centimes).toBe(480000);
-  expect(quote.duration_minutes).toBe(30);
+  expect(quote.duration_minutes).toBe(60);
   expect(quote.services).toEqual([expect.objectContaining({name:'Pack 8 séances',price_centimes:480000,type:'PACK'})]);
   const appointmentId=(await createCart('10000000-0000-4000-8000-000000000008',slot)).rows[0].id;
   const details=(await db.query<{data:{total_centimes:number;services:Array<Record<string,unknown>>}}>('select appointment_details($1) as data',[appointmentId])).rows[0].data;

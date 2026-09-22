@@ -127,6 +127,7 @@ abstract interface class AppointmentsRepository {
     DateTime start,
     String? notes,
   );
+  Future<void> updateTotal(ClinicAppointment appointment, int totalCentimes);
   Future<void> changeStatus(
     ClinicAppointment appointment,
     AppointmentStatus status,

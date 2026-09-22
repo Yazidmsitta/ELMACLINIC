@@ -30,6 +30,7 @@ class AppointmentDetail extends StatefulWidget {
 class _AppointmentDetailState extends State<AppointmentDetail> {
   int _generation = 0;
   ClinicAppointment? _appointment;
+  Future<PaymentBalance>? _paymentBalance;
   String? _error;
   bool _loading = true, _busy = false;
   @override
@@ -47,7 +48,11 @@ class _AppointmentDetailState extends State<AppointmentDetail> {
     try {
       final appointment = await widget.repository.details(widget.id);
       if (mounted && generation == _generation) {
-        setState(() => _appointment = appointment);
+        final payments = PaymentScope.of(context);
+        setState(() {
+          _appointment = appointment;
+          _paymentBalance = payments?.balance(appointment.id);
+        });
       }
     } catch (e) {
       if (mounted && generation == _generation) {
@@ -104,6 +109,27 @@ class _AppointmentDetailState extends State<AppointmentDetail> {
     if (saved == true && mounted) await _load();
   }
 
+  Future<void> _editTotal() async {
+    final appointment = _appointment!;
+    final total = await showDialog<int>(
+      context: context,
+      builder: (_) => TotalOverrideDialog(totalCentimes: appointment.totalCentimes),
+    );
+    if (total == null || !mounted) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      await widget.repository.updateTotal(appointment, total);
+      if (mounted) await _load();
+    } catch (e) {
+      if (mounted) setState(() => _error = friendlyError(e));
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   Future<void> _archive() async {
     final yes = await showDialog<bool>(
       context: context,
@@ -145,7 +171,7 @@ class _AppointmentDetailState extends State<AppointmentDetail> {
       return const SizedBox.shrink();
     }
     return FutureBuilder<PaymentBalance>(
-      future: repository.balance(appointment.id),
+      future: _paymentBalance,
       builder: (context, snapshot) {
         final remaining = snapshot.data?.remaining;
         final paid = remaining != null && remaining <= 0;
@@ -359,6 +385,12 @@ class _AppointmentDetailState extends State<AppointmentDetail> {
                                   color: ElmaColors.brand,
                                 ),
                               ),
+                              const SizedBox(height: 10),
+                              OutlinedButton.icon(
+                                onPressed: ready && !_busy ? _editTotal : null,
+                                icon: const Icon(Icons.edit_outlined, size: 16),
+                                label: const Text('Modifier le total'),
+                              ),
                             ],
                           ),
                         ),
@@ -434,6 +466,48 @@ class _AppointmentDetailState extends State<AppointmentDetail> {
       ),
     );
   }
+}
+
+class TotalOverrideDialog extends StatefulWidget {
+  const TotalOverrideDialog({super.key, required this.totalCentimes});
+  final int totalCentimes;
+  @override
+  State<TotalOverrideDialog> createState() => _TotalOverrideDialogState();
+}
+
+class _TotalOverrideDialogState extends State<TotalOverrideDialog> {
+  late String _value;
+
+  @override
+  void initState() {
+    super.initState();
+    _value = (widget.totalCentimes / 100).toStringAsFixed(2);
+  }
+
+  @override
+  Widget build(BuildContext context) => AlertDialog(
+    title: const Text('Modifier le total'),
+    content: TextFormField(
+      initialValue: _value,
+      onChanged: (value) => _value = value,
+      autofocus: true,
+      keyboardType: const TextInputType.numberWithOptions(decimal: true),
+      decoration: const InputDecoration(labelText: 'Nouveau total (MAD)'),
+    ),
+    actions: [
+      TextButton(
+        onPressed: () => Navigator.pop(context),
+        child: const Text('Annuler'),
+      ),
+      FilledButton(
+        onPressed: () {
+          final cents = parseMadCentimes(_value);
+          if (cents != null) Navigator.pop(context, cents);
+        },
+        child: const Text('Enregistrer'),
+      ),
+    ],
+  );
 }
 
 class RescheduleSheet extends StatefulWidget {

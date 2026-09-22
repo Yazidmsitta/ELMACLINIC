@@ -1,6 +1,7 @@
 import { z } from 'zod';
 import { authenticate,requireAdmin } from '../../../../../lib/auth';
 import { handle,HttpError,json } from '../../../../../lib/http';
+import { databaseError } from '../../../../../lib/catalog';
 import { appointmentStatus,appointmentError } from '../../../../../lib/appointments';
 export const runtime='nodejs';
 type Context={params:Promise<{id:string}>};
@@ -8,6 +9,7 @@ const version=z.number().int().positive();
 const change=z.discriminatedUnion('action',[
   z.object({action:z.literal('STATUS'),version,status:appointmentStatus}).strict(),
   z.object({action:z.literal('RESCHEDULE'),version,practitioner_id:z.uuid(),starts_at:z.iso.datetime({offset:true}),notes:z.string().trim().max(2000).nullable()}).strict(),
+  z.object({action:z.literal('TOTAL'),version,total_centimes:z.number().int().min(0).max(2147483647)}).strict(),
 ]);
 export async function GET(request:Request,context:Context) {
   return handle(async () => {
@@ -20,6 +22,10 @@ export async function PATCH(request:Request,context:Context) {
   return handle(async () => {
     const {db}=await authenticate(request);const id=z.uuid().parse((await context.params).id);
     const body=change.parse(await request.json());
+    if (body.action==='TOTAL') {
+      const result=await db.rpc('update_appointment_total',{record_id:id,expected_version:body.version,total_centimes:body.total_centimes});
+      databaseError(result.error);if(!result.data) throw new HttpError(404,'Rendez-vous introuvable.');return json({id:result.data});
+    }
     const result=await db.rpc('change_appointment',{record_id:id,expected_version:body.version,command:body.action,
       ...(body.action==='STATUS' ? {new_status:body.status} : {new_practitioner:body.practitioner_id,new_start:body.starts_at,new_notes:body.notes})});
     appointmentError(result.error);if(!result.data) throw new HttpError(404,'Rendez-vous introuvable.');return json({id:result.data});

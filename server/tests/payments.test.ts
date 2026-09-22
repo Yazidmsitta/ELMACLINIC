@@ -26,7 +26,7 @@ beforeAll(async () => {
 },30000);
 afterAll(async()=>{await db.close();});
 async function create(key:string,slot=start,amount=20000) {
-  return db.query<{id:string}>('select create_manual_appointment($1,$2,$3,$4,$5,$6,$7,$8) as id',[client,practitioner,[service],slot,'Notes',key,amount,30]);
+  return db.query<{id:string}>('select create_manual_appointment($1,$2,$3,$4,$5,$6,$7,$8) as id',[client,practitioner,[service],slot,'Notes',key,amount,60]);
 }
 
 let payment:string;
@@ -41,6 +41,15 @@ test('USER records partial MAD payment and replay does not charge twice',async()
  expect(balance).toEqual({appointment_id:appointment,currency:'MAD',total_centimes:20000,paid_centimes:10000,remaining_centimes:10000});
  expect((await db.query('select * from payments')).rows).toHaveLength(0);
  await expect(db.query('update payments set amount_centimes=1')).rejects.toThrow(/permission denied/);
+});
+test('ADMIN total override becomes the future payment balance',async()=>{
+ const slot=new Date(new Date(start).getTime()+24*3600000).toISOString();
+ const overriddenAppointment=(await create('10000000-0000-0000-0000-000000000016',slot)).rows[0].id;
+ await asUser(admin);
+ await db.query('select update_appointment_total($1,1,$2)',[overriddenAppointment,15000]);
+ await asUser();
+ const balance=(await db.query<{data:unknown}>('select appointment_payment_balance($1) as data',[overriddenAppointment])).rows[0].data;
+ expect(balance).toEqual({appointment_id:overriddenAppointment,currency:'MAD',total_centimes:15000,paid_centimes:0,remaining_centimes:15000});
 });
 test('same key cannot change payment details or leak another staff payment',async()=>{
  await expect(pay(5000)).rejects.toThrow('Clé de paiement');

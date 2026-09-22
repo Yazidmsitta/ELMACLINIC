@@ -21,7 +21,7 @@ export function appointmentError(error: {code?:string;message?:string}|null): vo
     'La praticienne est absente sur ce créneau.','Ce créneau est déjà réservé.','Sélection de prestations invalide.','Client introuvable.',
     'Choisissez un créneau futur.','Clé de requête déjà utilisée.','Le rendez-vous a été modifié. Actualisez la fiche.',
     'Ce rendez-vous ne peut plus être déplacé.','Transition de statut interdite.','Ce rendez-vous n’a pas encore commencé.',
-    'Le tarif ou la durée a changé. Vérifiez le nouveau devis.'];
+    'Le tarif ou la durée a changé. Vérifiez le nouveau devis.','Le total ne peut pas être inférieur aux paiements déjà encaissés.'];
   if (messages.includes(error.message ?? '')) throw new HttpError(error.code==='22023' ? 422 : 409,error.message!);
   databaseError(error);
 }

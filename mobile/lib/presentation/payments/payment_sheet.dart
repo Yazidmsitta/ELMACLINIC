@@ -216,16 +216,19 @@ class _PaymentSheetState extends State<PaymentSheet> {
   );
 }
 
-class PaymentScope extends InheritedWidget {
-  const PaymentScope({
+class PaymentScope extends StatelessWidget {
+  PaymentScope({
     super.key,
     required this.repository,
-    required super.child,
-  });
+    required this.child,
+  }) {
+    _current = repository;
+  }
   final PaymentsRepository? repository;
+  final Widget child;
+  static PaymentsRepository? _current;
   static PaymentsRepository? of(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<PaymentScope>()?.repository;
+      _current;
   @override
-  bool updateShouldNotify(PaymentScope oldWidget) =>
-      repository != oldWidget.repository;
+  Widget build(BuildContext context) => child;
 }

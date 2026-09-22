@@ -176,6 +176,12 @@ class ApiAppointmentsRepository implements AppointmentsRepository {
     );
   });
   @override
+  Future<void> updateTotal(ClinicAppointment appointment, int totalCentimes) => _request(() async {
+    await api.dio.patch<dynamic>('appointments/${appointment.id}', data: {
+      'action': 'TOTAL', 'version': appointment.version, 'total_centimes': totalCentimes,
+    });
+  });
+  @override
   Future<void> changeStatus(
     ClinicAppointment appointment,
     AppointmentStatus status,

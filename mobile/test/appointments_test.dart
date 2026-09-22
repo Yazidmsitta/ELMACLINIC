@@ -85,6 +85,8 @@ class FakeAppointments implements AppointmentsRepository {
     DateTime start,
     String? notes,
   ) async {}
+  @override
+  Future<void> updateTotal(ClinicAppointment appointment, int totalCentimes) async {}
 }
 
 void main() {

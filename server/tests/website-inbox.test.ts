@@ -35,7 +35,7 @@ async function receive(eventId='event-1', bookingId='website-1', slot=start) {
   })]);
 }
 async function resolve(id=receipt) {
-  return db.query<{id:string}>('select import_website_booking($1,1,$2,$3,$4,20000,30) as id',[id,client,practitioner,[service]]);
+  return db.query<{id:string}>('select import_website_booking($1,1,$2,$3,$4,20000,60) as id',[id,client,practitioner,[service]]);
 }
 test('only service role may enqueue; identical delivery reuses durable receipt',async()=>{
   await expect(db.query('select receive_website_booking($1)',['{}'])).rejects.toThrow(/permission denied/);

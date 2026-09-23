@@ -1,11 +1,12 @@
 import { z } from 'zod';
-import { authenticate } from '../../../../lib/auth';
+import { authenticate, requireAdmin } from '../../../../lib/auth';
 import { databaseError } from '../../../../lib/catalog';
 import { handle, HttpError, json } from '../../../../lib/http';
 export const runtime='nodejs';
 export async function GET(request:Request) {
   return handle(async()=>{
-    const {db}=await authenticate(request);
+    const {db,user}=await authenticate(request);
+    requireAdmin(user.role);
     const page=z.coerce.number().int().min(1).max(100000).parse(new URL(request.url).searchParams.get('page')??1);
     const result=await db.rpc('payment_ledger',{page_number:page});databaseError(result.error);return json(result.data);
   });

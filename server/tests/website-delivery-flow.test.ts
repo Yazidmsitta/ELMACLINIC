@@ -66,7 +66,7 @@ test('signed delivery reaches PostgreSQL review, staff imports, replay returns s
  const receipt=await delivery.json();receiptId=receipt.id;expect(receipt.state).toBe('REVIEW');
  await asUser();
  expect((await db.query('select * from website_booking_events where id=$1',[receiptId])).rows).toHaveLength(1);
- appointment=(await db.query<{id:string}>('select import_website_booking($1,1,$2,$3,$4,20000,30) as id',[receiptId,client,practitioner,[service]])).rows[0].id;
+ appointment=(await db.query<{id:string}>('select import_website_booking($1,1,$2,$3,$4,20000,60) as id',[receiptId,client,practitioner,[service]])).rows[0].id;
  const details=(await db.query<{data:{source:string,total_centimes:number}}>('select appointment_details($1) as data',[appointment])).rows[0].data;
  expect(details.source).toBe('WEBSITE');expect(details.total_centimes).toBe(20000);
  const replay=await POST(signed(event()));expect(replay.status).toBe(200);
@@ -87,7 +87,7 @@ test('tampered delivery creates nothing and reused event ID cannot overwrite per
 test('signed request persists despite occupied slot, failed staff import remains reviewable',async()=>{
  const response=await POST(signed(event('conflict-event','conflict-booking')));expect(response.status).toBe(202);
  const receipt=await response.json();await asUser();
- await expect(db.query('select import_website_booking($1,1,$2,$3,$4,20000,30) as id',[receipt.id,client,practitioner,[service]])).rejects.toThrow('déjà réservé');
+ await expect(db.query('select import_website_booking($1,1,$2,$3,$4,20000,60) as id',[receipt.id,client,practitioner,[service]])).rejects.toThrow('déjà réservé');
  const replay=await POST(signed(event('conflict-event','conflict-booking')));
  expect(await replay.json()).toEqual({id:receipt.id,state:'REVIEW',appointment_id:null,replayed:true});
  await db.exec('reset role');expect((await db.query('select * from appointments')).rows).toHaveLength(1);

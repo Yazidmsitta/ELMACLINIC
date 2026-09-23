@@ -38,7 +38,7 @@ declare today date := (now() at time zone 'Africa/Casablanca')::date;
   day_start timestamptz; day_end timestamptz; month_start timestamptz; month_end timestamptz;
   result jsonb; total bigint; daily bigint; monthly bigint;
 begin
-  if private.current_role() is null then raise insufficient_privilege; end if;
+  if private.current_role() is distinct from 'ADMIN' then raise insufficient_privilege; end if;
   if page_number is null or page_number not between 1 and 100000 then raise invalid_parameter_value; end if;
   day_start:=today::timestamp at time zone 'Africa/Casablanca';
   day_end:=(today+1)::timestamp at time zone 'Africa/Casablanca';

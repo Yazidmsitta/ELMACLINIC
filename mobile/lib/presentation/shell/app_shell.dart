@@ -172,6 +172,22 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                           ),
                         )
                       : null,
+                    onWebsite:
+                        widget.website != null &&
+                            widget.appointments != null &&
+                            widget.catalog != null
+                        ? () => Navigator.of(context).push<void>(
+                            MaterialPageRoute(
+                              builder: (_) => WebsiteBookingsScreen(
+                                repository: widget.website!,
+                                appointments: widget.appointments!,
+                                catalog: widget.catalog!,
+                                packs: widget.packs,
+                                isAdmin: user.isAdmin,
+                              ),
+                            ),
+                          )
+                        : null,
                   onTab: (index) => setState(() => _index = index),
                 ),
                 if (widget.appointments != null && widget.catalog != null)

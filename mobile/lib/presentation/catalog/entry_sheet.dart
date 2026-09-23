@@ -87,6 +87,7 @@ class _EntrySheetState extends State<EntrySheet> {
     });
     try {
       final birth = _value('birth');
+      final creating = widget.entry == null || widget.entry!.id.isEmpty;
       _savedId ??= await widget.repository.save(
         widget.kind,
         CatalogEntry(
@@ -109,10 +110,25 @@ class _EntrySheetState extends State<EntrySheet> {
           parentId: _parent,
           sortOrder: int.tryParse(_value('order') ?? '') ?? 0,
         ),
-        creating: widget.entry == null,
+        creating: creating,
       );
       if (_image != null) await widget.repository.uploadImage(_savedId!, _image!.bytes, _image!.mime);
-      if (mounted) Navigator.pop(context, true);
+      if (mounted) {
+        Navigator.pop(
+          context,
+          CatalogEntry(
+            id: _savedId!,
+            name: _value('name')!,
+            phone: _value('phone'),
+            email: _value('email'),
+            birthDate: birth == null
+                ? null
+                : DateFormat('yyyy-MM-dd').format(
+                    DateFormat('dd/MM/yyyy').parseStrict(birth),
+                  ),
+          ),
+        );
+      }
     } catch (error) {
       if (mounted) setState(() => _error = _savedId != null ? 'Fiche enregistrée, mais photo non envoyée. Réessayez pour envoyer la photo.' : friendlyError(error));
     } finally {

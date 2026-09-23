@@ -14,12 +14,14 @@ class CatalogPicker extends StatefulWidget {
     required this.selected,
     required this.onSelect,
     this.showHeading = false,
+    this.newClientDefaults,
   });
   final CatalogKind kind;
   final CatalogRepository repository;
   final Set<String> selected;
   final ValueChanged<CatalogEntry> onSelect;
   final bool showHeading;
+  final CatalogEntry? newClientDefaults;
   @override
   State<CatalogPicker> createState() => _CatalogPickerState();
 }
@@ -98,7 +100,7 @@ class _CatalogPickerState extends State<CatalogPicker> {
   }
 
   Future<void> _addClient() async {
-    final saved = await showModalBottomSheet<bool>(
+    final saved = await showModalBottomSheet<CatalogEntry>(
       context: context,
       isScrollControlled: true,
       isDismissible: false,
@@ -107,9 +109,13 @@ class _CatalogPickerState extends State<CatalogPicker> {
         kind: CatalogKind.clients,
         repository: widget.repository,
         categories: const [],
+        entry: widget.newClientDefaults,
       ),
     );
-    if (saved == true && mounted) await _load();
+    if (saved != null && mounted) {
+      widget.onSelect(saved);
+      await _load();
+    }
   }
 
   @override

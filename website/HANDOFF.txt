@@ -1,0 +1,45 @@
+ELMA CLINIC — NEXT.JS HANDOFF
+
+Had pack howa website public clinic-only, bla shop. Khddam b Next.js App Router.
+
+1. Ila projet dyalk Next.js deja kayn:
+   - Merge app/page.js, app/globals.css, components/, lib/ w public/assets/.
+   - Merge app/layout.js metadata/fonts m3a layout dyalk; ma tbdlch layout dyal dashboard ila kayst3mel providers.
+   - Zid routes:
+     app/api/catalog/route.js
+     app/api/bookings/route.js
+
+2. Vercel Environment Variables, server-only:
+   WEBSITE_WEBHOOK_SECRET_HEX
+   WEBSITE_CATALOG_SECRET_HEX
+
+   Optional:
+   ELMA_API_BASE_URL=https://elmaclinic-api.vercel.app/api/v1
+   ELMA_TIMEZONE_OFFSET=+01:00
+   NEXT_PUBLIC_ELMA_WHATSAPP=212631396958
+
+3. Important:
+   - WEBSITE_* secrets ma ykhrjoch jamais l client components.
+   - app/page.js kayjib catalog direct server-side.
+   - /api/bookings kayvalidate form, kaybuild payload, kaydir HMAC, w kaypostih l app.
+   - Ila secrets mazal ma tzadoch, site kayban b demo services, walakin reservation API katrj3 unavailable.
+   - Current booking API creates a REVIEW request; staff khaso yconfirmiha mn app.
+
+4. Fields expected mn catalog:
+   categories: id, name, parent_id, sort_order
+   services: id, category_id, name, description, duration_minutes, price_centimes
+   practitioners: id, full_name, specialty
+
+5. Qbel production:
+   - Bdel metadataBase/canonical f app/layout.js ila domaine mahowach elmaclinic.com.
+   - Confirmi WhatsApp, telephone, email, address w Google Maps.
+   - Ila bghito packs dynamiques, zidhom f catalog response w renderihom f HomePage.
+   - Google Reviews/Instagram integration points kaynin f HomePage.
+
+Run standalone:
+   npm install
+   cp .env.example .env.local
+   npm run dev
+
+Production check:
+   npm run build

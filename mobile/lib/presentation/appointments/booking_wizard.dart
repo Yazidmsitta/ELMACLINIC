@@ -95,7 +95,11 @@ class _BookingWizardState extends State<BookingWizard> {
   }
 
   int get _bookingDurationMinutes {
-    return _services.isNotEmpty || _selectedPacks.isNotEmpty ? 60 : 0;
+    final prestationMinutes = _services.fold<int>(
+      0,
+      (total, service) => total + (service.durationMinutes ?? 30),
+    );
+    return prestationMinutes + (_selectedPacks.isNotEmpty ? 30 : 0);
   }
 
   @override
@@ -149,7 +153,7 @@ class _BookingWizardState extends State<BookingWizard> {
       final availability = await widget.catalog.availability(practitioner.id);
       if (!mounted) return;
       final dates = <DateTime>[];
-      final now = ClinicTime.now();
+      final now = DateTime.now();
       for (var offset = 0; offset < 90; offset++) {
         final date = DateTime(now.year, now.month, now.day + offset);
         if (_slotsForDay(
@@ -192,9 +196,12 @@ class _BookingWizardState extends State<BookingWizard> {
         minute + durationMinutes <= endMinutes;
         minute += 30
       ) {
-        final slotDate = ClinicTime.at(
-          utcDay,
-          TimeOfDay(hour: minute ~/ 60, minute: minute % 60),
+        final slotDate = DateTime(
+          utcDay.year,
+          utcDay.month,
+          utcDay.day,
+          minute ~/ 60,
+          minute % 60,
         );
         final endDate = slotDate.add(Duration(minutes: durationMinutes));
         final blocked =
@@ -208,7 +215,7 @@ class _BookingWizardState extends State<BookingWizard> {
                   slotDate.isBefore(booking.end) &&
                   endDate.isAfter(booking.start),
             );
-        if (!blocked && !slotDate.isBefore(ClinicTime.now())) {
+        if (!blocked && !slotDate.isBefore(DateTime.now())) {
           slots.add(TimeOfDay(hour: slotDate.hour, minute: slotDate.minute));
         }
       }
@@ -259,7 +266,7 @@ class _BookingWizardState extends State<BookingWizard> {
   DateTime? _firstSelectableDate() {
     final availability = _availability;
     if (availability == null) return null;
-    final today = ClinicTime.now();
+    final today = DateTime.now();
     for (var offset = 0; offset < 90; offset++) {
       final date = DateTime(today.year, today.month, today.day + offset);
       if (_slotsForDay(
@@ -288,9 +295,21 @@ class _BookingWizardState extends State<BookingWizard> {
       }
       if (!mounted) return;
       setState(
-        () => _serviceEntries
-          ..clear()
-          ..addAll(services),
+        () {
+          _serviceEntries
+            ..clear()
+            ..addAll(services);
+          if (widget.websiteBooking != null) {
+            _services
+              ..clear()
+              ..addAll(
+                services.where(
+                  (service) => widget.websiteBooking!.serviceReferences
+                      .contains(service.id),
+                ),
+              );
+          }
+        },
       );
     } catch (error) {
       if (mounted) setState(() => _error = friendlyError(error));
@@ -452,6 +471,7 @@ class _BookingWizardState extends State<BookingWizard> {
                 widget.websiteBooking!,
                 _selection,
                 _quote!,
+                _notes.text.trim().isEmpty ? null : _notes.text.trim(),
               )
             : await widget.repository.create(
                 _selection,
@@ -522,6 +542,14 @@ class _BookingWizardState extends State<BookingWizard> {
                       repository: widget.catalog,
                       showHeading: true,
                       selected: {if (_client != null) _client!.id},
+                      newClientDefaults: widget.websiteBooking == null
+                          ? null
+                          : CatalogEntry(
+                              id: '',
+                              name: widget.websiteBooking!.clientName,
+                              phone: widget.websiteBooking!.phone,
+                              email: widget.websiteBooking!.email,
+                            ),
                       onSelect: (e) => setState(() => _client = e),
                     ),
                     1 => Column(
@@ -1309,14 +1337,14 @@ class _BookingWizardState extends State<BookingWizard> {
                               return CalendarDatePicker(
                                 initialDate: selectedDate,
                                 firstDate: DateTime(
-                                  ClinicTime.now().year,
-                                  ClinicTime.now().month,
-                                  ClinicTime.now().day,
+                                  DateTime.now().year,
+                                  DateTime.now().month,
+                                  DateTime.now().day,
                                 ),
                                 lastDate: DateTime(
-                                  ClinicTime.now().year,
-                                  ClinicTime.now().month,
-                                  ClinicTime.now().day + 89,
+                                  DateTime.now().year,
+                                  DateTime.now().month,
+                                  DateTime.now().day + 89,
                                 ),
                                 selectableDayPredicate: (date) => _slotsForDay(
                                   date,
@@ -1383,7 +1411,7 @@ class _BookingWizardState extends State<BookingWizard> {
                           controller: _notes,
                           maxLines: 3,
                           maxLength: 2000,
-                          enabled: !_busy && widget.websiteBooking == null,
+                          enabled: !_busy,
                           decoration: const InputDecoration(
                             labelText: 'Notes (facultatif)',
                           ),

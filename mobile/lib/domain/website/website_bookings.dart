@@ -18,6 +18,7 @@ class WebsiteBooking {
     required this.start,
     required this.serviceReferences,
     this.phone,
+    this.email,
     this.notes,
     this.appointmentId,
     this.dismissalReason,
@@ -27,7 +28,7 @@ class WebsiteBooking {
   final WebsiteState state;
   final DateTime start;
   final List<String> serviceReferences;
-  final String? phone, notes, appointmentId, dismissalReason;
+  final String? phone, email, notes, appointmentId, dismissalReason;
 }
 
 class WebsitePage {
@@ -39,10 +40,12 @@ class WebsitePage {
 
 abstract interface class WebsiteBookingsRepository {
   Future<void> dismiss(WebsiteBooking event, String reason);
+  Future<void> archiveImported(WebsiteBooking event);
   Future<WebsitePage> list(WebsiteState state, {int page = 1});
   Future<String> importBooking(
     WebsiteBooking event,
     BookingSelection selection,
     BookingQuote quote,
+    String? notes,
   );
 }

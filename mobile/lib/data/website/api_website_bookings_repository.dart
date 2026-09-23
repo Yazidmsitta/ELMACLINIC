@@ -30,6 +30,13 @@ class ApiWebsiteBookingsRepository implements WebsiteBookingsRepository {
         );
       });
   @override
+  Future<void> archiveImported(WebsiteBooking event) => _request(() async {
+        await api.dio.post<dynamic>(
+          'website-bookings/${event.id}/archive',
+          data: {'version': event.version},
+        );
+      });
+  @override
   Future<WebsitePage> list(WebsiteState state, {int page = 1}) =>
       _request(() async {
         final body = (await api.dio.get<Map<String, dynamic>>(
@@ -50,6 +57,7 @@ class ApiWebsiteBookingsRepository implements WebsiteBookingsRepository {
               ),
               clientName: client['full_name'] as String,
               phone: client['phone'] as String?,
+              email: client['email'] as String?,
               start: DateTime.parse(payload['starts_at'] as String),
               notes: payload['notes'] as String?,
               serviceReferences: (payload['service_external_ids'] as List)
@@ -67,6 +75,7 @@ class ApiWebsiteBookingsRepository implements WebsiteBookingsRepository {
     WebsiteBooking event,
     BookingSelection selection,
     BookingQuote quote,
+    String? notes,
   ) => _request(() async {
     final body = (await api.dio.post<Map<String, dynamic>>(
       'website-bookings/${event.id}/import',
@@ -77,6 +86,7 @@ class ApiWebsiteBookingsRepository implements WebsiteBookingsRepository {
         'service_ids': selection.serviceIds,
         'expected_total_centimes': quote.totalCentimes,
         'expected_duration_minutes': quote.duration,
+        'notes': notes,
       },
     )).data!;
     return body['id'] as String;

@@ -230,11 +230,11 @@ class _MoreScreenState extends State<MoreScreen> {
                     Container(
                       width: 56,
                       height: 56,
-                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                       ),
+                      clipBehavior: Clip.antiAlias,
                       child: const ElmaBrandMark(),
                     ),
                     const SizedBox(width: 12),

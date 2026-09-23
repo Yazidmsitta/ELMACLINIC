@@ -2,34 +2,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../theme/app_theme.dart';
 
-/// The Make SVG is a raster image in a pattern: viewBox 125×184,
-/// source offset -345px. Flutter SVG does not support this pattern fill.
-/// Preserve its exact crop using the original PNG, without redrawing the logo.
 class ElmaBrandMark extends StatelessWidget {
   const ElmaBrandMark({super.key});
   @override
-  Widget build(BuildContext context) => FittedBox(
+  Widget build(BuildContext context) => Image.asset(
+    'assets/branding/elmacliniclogo.png',
+    width: 56,
+    height: 56,
     fit: BoxFit.contain,
-    child: ClipRect(
-      child: SizedBox(
-        width: 125,
-        height: 184,
-        child: OverflowBox(
-          alignment: Alignment.topLeft,
-          maxWidth: 816,
-          maxHeight: 306,
-          child: Transform.translate(
-            offset: const Offset(-345, 0),
-            child: Image.asset(
-              'assets/branding/logo.png',
-              width: 816,
-              height: 306,
-              semanticLabel: 'ELMA Clinic',
-            ),
-          ),
-        ),
-      ),
-    ),
+    semanticLabel: 'ELMA Clinic',
   );
 }
 

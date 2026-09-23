@@ -489,9 +489,11 @@ class _BookingWizardState extends State<BookingWizard> {
   }
 
   @override
-  Widget build(BuildContext context) => PopScope(
-    canPop: !_busy,
-    child: Scaffold(
+  Widget build(BuildContext context) {
+    final keyboardOpen = MediaQuery.viewInsetsOf(context).bottom > 0;
+    return PopScope(
+      canPop: !_busy,
+      child: Scaffold(
       body: SafeArea(
         child: Column(
           children: [
@@ -1488,7 +1490,7 @@ class _BookingWizardState extends State<BookingWizard> {
                     loading: _busy,
                     onPressed: _ready ? _next : null,
                   ),
-                  if (_step > 0)
+                  if (_step > 0 && !keyboardOpen)
                     TextButton(
                       onPressed: _busy
                           ? null
@@ -1506,8 +1508,9 @@ class _BookingWizardState extends State<BookingWizard> {
           ],
         ),
       ),
-    ),
-  );
+      ),
+    );
+  }
   String _money(int cents) =>
       NumberFormat.currency(locale: 'fr', symbol: 'MAD').format(cents / 100);
   Widget _summary(String label, String value) => Container(

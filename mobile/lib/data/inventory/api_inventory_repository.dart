@@ -54,22 +54,28 @@ class ApiInventoryRepository implements InventoryRepository {
   Future<String> save(ProductDraft draft, {StockProduct? product}) =>
       _request(() async {
         final body = <String, dynamic>{
-          'sku': draft.sku,
-          'name': draft.name,
-          'unit': draft.unit,
+          'sku': draft.sku.trim(),
+          'name': draft.name.trim(),
+          'unit': draft.unit.trim(),
           'cost_centimes': draft.cost,
-          'reorder_level': draft.threshold,
+          'reorder_level': draft.threshold.trim(),
+          'initial_quantity': draft.initialQuantity.trim(),
           'active': draft.active,
         };
+
         if (product == null) {
-          final r=await api.dio.post<Map<String,dynamic>>('inventory',data:body); return r.data!['id'] as String;
-        } else {
-          await api.dio.patch<dynamic>(
-            'inventory/${product.id}',
-            data: {...body, 'version': product.version},
+          final r = await api.dio.post<Map<String, dynamic>>(
+            'inventory',
+            data: body,
           );
-          return product.id;
+          return r.data!['id'] as String;
         }
+
+        await api.dio.patch<dynamic>(
+          'inventory/${product.id}',
+          data: {...body, 'version': product.version},
+        );
+        return product.id;
       });
   @override Future<void> uploadImage(String id, Uint8List bytes, String mimeType) => _request(()async{await api.dio.put<void>('inventory/$id/image',data:bytes,options:Options(contentType:mimeType));});
   @override

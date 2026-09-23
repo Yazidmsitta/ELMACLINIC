@@ -4,9 +4,13 @@ import { HttpError } from './http';
 export const appointmentStatus = z.enum(['NEW','PENDING','CONFIRMED','IN_PROGRESS','COMPLETED','CANCELLED','NO_SHOW']);
 export const bookingSelection = z.object({
   client_id: z.uuid(), practitioner_id: z.uuid(),
-  service_ids: z.array(z.uuid()).min(1).max(10).refine(ids => new Set(ids).size===ids.length),
+  service_ids: z.array(z.uuid()).max(10).refine(ids => new Set(ids).size===ids.length),
+  pack_ids: z.array(z.uuid()).max(10).default([]).refine(ids => new Set(ids).size===ids.length),
   starts_at: z.iso.datetime({offset:true}),
-}).strict();
+}).strict().refine(
+  selection => selection.service_ids.length > 0 || selection.pack_ids.length > 0,
+  { message: 'Sélectionnez au moins une prestation ou un pack.', path: ['service_ids'] },
+);
 export const bookingCreate = bookingSelection.extend({
   notes:z.string().trim().max(2000).nullable().optional(), request_id:z.uuid(),
   expected_total_centimes:z.number().int().min(0).max(1000000000), expected_duration_minutes:z.number().int().min(1).max(1440),

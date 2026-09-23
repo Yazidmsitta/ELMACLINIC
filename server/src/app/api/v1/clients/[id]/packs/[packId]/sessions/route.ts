@@ -5,7 +5,9 @@ import { databaseError } from '../../../../../../../../lib/catalog';
 export const runtime = 'nodejs';
 type Context = { params: Promise<{ id: string; packId: string }> };
 const schema = z.object({
-  delta: z.number().int().min(-100).max(100).refine((value) => value !== 0),
+  delta: z.number().int().min(-100).max(100).refine((value) => value !== 0, {
+    message: 'Aucune modification à enregistrer.',
+  }),
   reason: z.string().trim().max(500).nullable().optional(),
 }).strict();
 export async function POST(request: Request, context: Context) {

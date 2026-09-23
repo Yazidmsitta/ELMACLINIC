@@ -23,7 +23,6 @@ class MoreScreen extends StatefulWidget {
     this.catalog,
     this.onWebsite,
     this.onExpenses,
-    this.onInventory,
     this.onStaff,
     this.onSettings,
     this.onReports,
@@ -35,7 +34,6 @@ class MoreScreen extends StatefulWidget {
   final CatalogRepository? catalog;
   final VoidCallback? onWebsite;
   final VoidCallback? onExpenses;
-  final VoidCallback? onInventory;
   final VoidCallback? onStaff;
   final VoidCallback? onSettings;
   final VoidCallback? onReports;
@@ -110,12 +108,6 @@ class _MoreScreenState extends State<MoreScreen> {
               widget.user.isAdmin &&
               widget.onStaff != null) {
             widget.onStaff!();
-            return;
-          }
-          if (label == 'Inventaire' &&
-              widget.user.isAdmin &&
-              widget.onInventory != null) {
-            widget.onInventory!();
             return;
           }
           if (label == 'Dépenses' &&
@@ -238,11 +230,11 @@ class _MoreScreenState extends State<MoreScreen> {
                     Container(
                       width: 56,
                       height: 56,
-                      padding: const EdgeInsets.all(10),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.circular(16),
                       ),
+                      clipBehavior: Clip.antiAlias,
                       child: const ElmaBrandMark(),
                     ),
                     const SizedBox(width: 12),
@@ -310,12 +302,6 @@ class _MoreScreenState extends State<MoreScreen> {
                   'Gérer les charges',
                   'AlertTriangle',
                   const Color(0xFFE8E4DC),
-                ),
-                _entry(
-                  'Inventaire',
-                  'Produits et mouvements de stock',
-                  'Package',
-                  const Color(0xFFE8DCE4),
                 ),
                 _entry(
                   'Rapports',

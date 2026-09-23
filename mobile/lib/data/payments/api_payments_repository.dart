@@ -45,6 +45,8 @@ class ApiPaymentsRepository implements PaymentsRepository {
           row['amount_centimes'] as int,
           matches.first,
           DateTime.parse(row['paid_at'] as String),
+          clientId: row['client_id'] as String?,
+          remaining: row['remaining_centimes'] as int? ?? 0,
         );
       }).toList(),
       body['total'] as int,

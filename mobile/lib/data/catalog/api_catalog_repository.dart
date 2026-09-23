@@ -39,23 +39,10 @@ class ApiCatalogRepository implements CatalogRepository {
       packs: ((data['packs'] as List?) ?? const [])
           .map((dynamic raw) {
             final row = raw as Map<String, dynamic>;
-return _packSummary(row);
+            return _packSummary(row);
           })
           .toList(growable: false),
     );
-  });
-
-  @override
-  Future<ClientPackSummary> adjustClientPackSessions(
-    String clientId,
-    String packId,
-    int delta,
-  ) => _request(() async {
-    final response = await api.dio.post<Map<String, dynamic>>(
-      'clients/$clientId/packs/$packId/sessions',
-      data: {'delta': delta},
-    );
-    return _packSummary(response.data!['data'] as Map<String, dynamic>);
   });
 
   @override
@@ -65,6 +52,7 @@ return _packSummary(row);
           'practitioners/$id/availability',
         );
         final data = response.data!['data'] as Map<String, dynamic>;
+        final busyRows = data['busy'];
         return PractitionerAvailability(
           (data['shifts'] as List)
               .map(
@@ -78,6 +66,14 @@ return _packSummary(row);
           (data['absences'] as List)
               .map(
                 (dynamic s) => TimeOff(
+                  DateTime.parse(s['starts_at'] as String),
+                  DateTime.parse(s['ends_at'] as String),
+                ),
+              )
+              .toList(),
+          busy: (busyRows is List ? busyRows : const <dynamic>[])
+              .map(
+                (dynamic s) => BusySlot(
                   DateTime.parse(s['starts_at'] as String),
                   DateTime.parse(s['ends_at'] as String),
                 ),
@@ -122,6 +118,21 @@ return _packSummary(row);
           options: Options(contentType: mimeType),
         );
       });
+  @override
+  Future<void> adjustClientPackSessions(
+    String clientId,
+    String packId,
+    int delta, {
+    String? reason,
+  }) => _request(() async {
+    await api.dio.post<dynamic>(
+      'clients/$clientId/packs/$packId/sessions',
+      data: {
+        'delta': delta,
+        if (reason != null && reason.trim().isNotEmpty) 'reason': reason.trim(),
+      },
+    );
+  });
   Future<T> _request<T>(Future<T> Function() action) async {
     try {
       return await action();
@@ -208,9 +219,14 @@ return _packSummary(row);
       if (kind != CatalogKind.clients) 'active': entry.active,
     };
     if (creating) {
-      final response=await api.dio.post<Map<String,dynamic>>(kind.path,data:body); return (response.data!['data'] as Map<String,dynamic>)['id'] as String;
+      final response = await api.dio.post<Map<String, dynamic>>(
+        kind.path,
+        data: body,
+      );
+      return (response.data!['data'] as Map<String, dynamic>)['id'] as String;
     } else {
-      await api.dio.patch<dynamic>('${kind.path}/${entry.id}', data: body); return entry.id;
+      await api.dio.patch<dynamic>('${kind.path}/${entry.id}', data: body);
+      return entry.id;
     }
   });
   @override

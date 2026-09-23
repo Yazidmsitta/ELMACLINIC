@@ -51,7 +51,7 @@ class ApiAppointmentsRepository implements AppointmentsRepository {
   List<BookingItem> _items(dynamic raw) => (raw as List)
       .map(
         (dynamic s) => BookingItem(
-          s['service_id'] as String,
+          (s['service_id'] as String?) ?? '',
           s['name'] as String,
           s['duration_minutes'] as int,
           s['price_centimes'] as int,
@@ -83,6 +83,7 @@ class ApiAppointmentsRepository implements AppointmentsRepository {
     'client_id': s.clientId,
     'practitioner_id': s.practitionerId,
     'service_ids': s.serviceIds,
+    if (s.packIds.isNotEmpty) 'pack_ids': s.packIds,
     'starts_at': s.start.toUtc().toIso8601String(),
   };
   @override

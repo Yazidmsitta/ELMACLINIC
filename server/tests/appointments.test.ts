@@ -29,9 +29,9 @@ beforeAll(async () => {
 },30000);
 afterAll(async()=>{await db.close();});
 async function create(key:string,slot=start,amount=20000) {
-  return db.query<{id:string}>('select create_manual_appointment($1,$2,$3,$4,$5,$6,$7,$8) as id',[client,practitioner,[service],slot,'Notes',key,amount,30]);
+  return db.query<{id:string}>('select create_manual_appointment($1,$2,$3,$4,$5,$6,$7,$8) as id',[client,practitioner,[service],slot,'Notes',key,amount,60]);
 }
-async function createCart(key:string,slot:string,serviceIds:string[]=[],packIds:string[]=[pack],amount=480000,duration=30) {
+async function createCart(key:string,slot:string,serviceIds:string[]=[],packIds:string[]=[pack],amount=480000,duration=60) {
   return db.query<{id:string}>('select create_manual_appointment_cart($1,$2,$3,$4,$5,$6,$7,$8,$9) as id',[client,practitioner,serviceIds,packIds,slot,'Notes',key,amount,duration]);
 }
 test('USER creates manual booking with authoritative price snapshots and idempotency',async()=>{
@@ -47,14 +47,14 @@ test('USER creates manual booking with authoritative price snapshots and idempot
 test('competing bookings cannot reserve an occupied interval; boundary adjacency is valid',async()=>{
   const result=await Promise.allSettled([create('10000000-0000-4000-8000-000000000002'),create('10000000-0000-4000-8000-000000000003')]);
   expect(result.every(r=>r.status==='rejected')).toBe(true);
-  const adjacent=new Date(new Date(start).getTime()+30*60000).toISOString();
+  const adjacent=new Date(new Date(start).getTime()+60*60000).toISOString();
   expect((await create('10000000-0000-4000-8000-000000000004',adjacent)).rows[0].id).toBeTruthy();
 });
 test('pack booking uses the pack price while duration comes from included services',async()=>{
   const slot=new Date(new Date(start).getTime()+24*3600000).toISOString();
   const quote=(await db.query<{data:{total_centimes:number;duration_minutes:number;services:Array<Record<string,unknown>>}}>('select quote_appointment_cart($1,$2,$3,$4,$5) as data',[client,practitioner,[],[pack],slot])).rows[0].data;
   expect(quote.total_centimes).toBe(480000);
-  expect(quote.duration_minutes).toBe(30);
+  expect(quote.duration_minutes).toBe(60);
   expect(quote.services).toEqual([expect.objectContaining({name:'Pack 8 séances',price_centimes:480000,type:'PACK'})]);
   const appointmentId=(await createCart('10000000-0000-4000-8000-000000000008',slot)).rows[0].id;
   const details=(await db.query<{data:{total_centimes:number;services:Array<Record<string,unknown>>}}>('select appointment_details($1) as data',[appointmentId])).rows[0].data;
@@ -69,11 +69,11 @@ test('client profile exposes today appointments, history, and pack session statu
   const profile=(await db.query<{data:{history:unknown[];packs:Array<{name:string;total_sessions:number;completed_sessions:number;remaining_sessions:number;status:string}>}}>('select client_profile($1) as data',[client])).rows[0].data;
   expect(profile.history.length).toBeGreaterThan(0);
   expect(profile.packs).toEqual([expect.objectContaining({name:'Pack 8 séances',total_sessions:16,completed_sessions:1,remaining_sessions:15,status:'EN_ATTENTE'})]);
-  const added=(await db.query<{data:{total_sessions:number;remaining_sessions:number}}>('select adjust_client_pack_sessions($1,$2,1,null) as data',[client,pack])).rows[0].data;
-  expect(added.total_sessions).toBe(17);expect(added.remaining_sessions).toBe(16);
-  const removed=(await db.query<{data:{total_sessions:number;remaining_sessions:number}}>('select adjust_client_pack_sessions($1,$2,-16,null) as data',[client,pack])).rows[0].data;
-  expect(removed.total_sessions).toBe(1);expect(removed.remaining_sessions).toBe(0);
-  await expect(db.query('select adjust_client_pack_sessions($1,$2,-1,null)',[client,pack])).rejects.toThrow('séance déjà terminée');
+  const added=(await db.query<{data:{total_sessions:number;completed_sessions:number;remaining_sessions:number}}>('select adjust_client_pack_sessions($1,$2,1,null) as data',[client,pack])).rows[0].data;
+  expect(added.total_sessions).toBe(16);expect(added.completed_sessions).toBe(2);expect(added.remaining_sessions).toBe(14);
+  const removed=(await db.query<{data:{total_sessions:number;completed_sessions:number;remaining_sessions:number}}>('select adjust_client_pack_sessions($1,$2,-1,null) as data',[client,pack])).rows[0].data;
+  expect(removed.total_sessions).toBe(16);expect(removed.completed_sessions).toBe(1);expect(removed.remaining_sessions).toBe(15);
+  await expect(db.query('select adjust_client_pack_sessions($1,$2,-1,null)',[client,pack])).rejects.toThrow('séance confirmée par rendez-vous');
 });
 test('USER cannot override prices; changed quote requires renewed confirmation',async()=>{
   const later=new Date(new Date(start).getTime()+2*3600000).toISOString();

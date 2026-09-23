@@ -1,6 +1,7 @@
 import { beforeAll,afterAll,expect,test } from 'vitest';
 import { PGlite } from '@electric-sql/pglite';
 import { readFileSync,readdirSync } from 'node:fs';
+import { productArgs, productFields } from '../src/lib/inventory';
 const db=new PGlite();
 const admin='00000000-0000-4000-8000-000000000001', user='00000000-0000-4000-8000-000000000002';
 let client:string,practitioner:string,service:string,start:string,appointment:string;
@@ -30,6 +31,26 @@ afterAll(async()=>{await db.close();});
 let product:string;
 const key='10000000-0000-4000-8000-000000000123';
 async function adjust(quantity:string, request=key) { return db.query<{id:string}>('select adjust_inventory($1,$2,$3,$4) as id',[product,quantity,'Réception stock',request]); }
+test('inventory payload accepts the minimal product contract',()=>{
+ const parsed=productFields.parse({
+   sku:'PROD-001',
+   name:'Nettoyant',
+   unit:'ml',
+   cost_centimes:18000,
+   reorder_level:'2.000',
+   initial_quantity:'5.000',
+   active:true,
+ });
+ expect(parsed).toMatchObject({
+   sku:'PROD-001', name:'Nettoyant',
+   initial_quantity:'5.000', active:true,
+ });
+ expect(productArgs(parsed)).toMatchObject({
+   sku_text:'PROD-001', name_text:'Nettoyant', description_text:'',
+   initial_quantity:'5.000', enabled:true,
+ });
+});
+
 test('inventory adjustments enforce ADMIN and preserve exact idempotent movements',async()=>{
  await db.exec('reset role');
  product=(await db.query<{id:string}>("insert into products(sku,name,unit,cost_centimes) values('TEST','Produit','ml',100) returning id")).rows[0].id;

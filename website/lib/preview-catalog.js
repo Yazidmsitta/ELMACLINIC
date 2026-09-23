@@ -1,0 +1,45 @@
+export const previewCatalog = {
+  currency: "MAD",
+  categories: [
+    { id: "laser", name: "Épilation laser" },
+    { id: "visage", name: "Soins du visage" },
+    { id: "head-spa", name: "Head spa & cheveux" },
+    { id: "body", name: "Body & bien-être" },
+  ],
+  services: [
+    {
+      id: "preview-laser",
+      category_id: "laser",
+      name: "Épilation laser",
+      description: "Une prise en charge précise, adaptée à votre peau.",
+      duration_minutes: 30,
+      price_centimes: 60000,
+    },
+    {
+      id: "preview-visage",
+      category_id: "visage",
+      name: "Soin du visage",
+      description: "Éclat, texture et équilibre dans un protocole sur mesure.",
+      duration_minutes: 60,
+      price_centimes: 75000,
+    },
+    {
+      id: "preview-head-spa",
+      category_id: "head-spa",
+      name: "Head spa",
+      description: "Un rituel expert pour le cuir chevelu et la détente.",
+      duration_minutes: 60,
+      price_centimes: 70000,
+    },
+    {
+      id: "preview-body",
+      category_id: "body",
+      name: "Body & bien-être",
+      description: "Des soins ciblés pour le confort et la silhouette.",
+      duration_minutes: 60,
+      price_centimes: 80000,
+    },
+  ],
+  practitioners: [],
+  packs: [],
+};

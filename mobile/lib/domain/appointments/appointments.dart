@@ -97,10 +97,12 @@ class BookingSelection {
     this.practitionerId,
     this.serviceIds,
     this.start,
+    {this.packIds = const []}
   );
   final String clientId, practitionerId;
   final List<String> serviceIds;
   final DateTime start;
+  final List<String> packIds;
 }
 
 abstract interface class AppointmentsRepository {

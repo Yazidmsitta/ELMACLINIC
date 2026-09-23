@@ -59,7 +59,8 @@ void main() {
       final repo = FakeExpenses()..failSummary = true;
       await tester.pumpWidget(catalogApp(ExpensesScreen(repository: repo)));
       await tester.pumpAndSettle();
-      expect(find.text('Achat produits soins'), findsOneWidget);
+      expect(find.text('Produits'), findsOneWidget);
+      expect(find.text('Achat produits soins · 5 sept. 2026'), findsOneWidget);
       expect(find.text('Ce mois'), findsNothing);
       repo.failSummary = false;
       await tester.tap(find.text('Réessayer le résumé'));
@@ -77,7 +78,11 @@ void main() {
       catalogApp(Scaffold(body: ExpenseSheet(repository: repo))),
     );
     await tester.enterText(find.byType(TextFormField).at(0), 'Produits');
-    await tester.enterText(find.byType(TextFormField).at(1), '12,34');
+    await tester.enterText(
+      find.byType(TextFormField).at(1),
+      'Achat produits soins',
+    );
+    await tester.enterText(find.byType(TextFormField).at(2), '12,34');
     await tester.ensureVisible(find.text('Enregistrer la dépense'));
     await tester.tap(find.text('Enregistrer la dépense'));
     await tester.pumpAndSettle();

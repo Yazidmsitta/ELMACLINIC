@@ -400,6 +400,8 @@ class _AppointmentDetailState extends State<AppointmentDetail> {
                             child: OutlinedButton(
                               onPressed: ready ? () => _action(status) : null,
                               child: Text(switch (status) {
+                                AppointmentStatus.pending =>
+                                  'Mettre en attente',
                                 AppointmentStatus.confirmed =>
                                   'Confirmer le RDV',
                                 AppointmentStatus.inProgress =>

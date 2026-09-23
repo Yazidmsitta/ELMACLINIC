@@ -9,7 +9,10 @@ export async function handle(action: () => Promise<Response>) {
   try { return await action(); }
   catch (error) {
     if (error instanceof HttpError) return json({ message: error.message }, error.status);
-    if (error instanceof ZodError || error instanceof SyntaxError) return json({ message: 'Données invalides.' }, 422);
+    if (error instanceof ZodError || error instanceof SyntaxError) {
+      const message = error instanceof ZodError && error.issues[0]?.message ? error.issues[0].message : 'Données invalides.';
+      return json({ message }, 422);
+    }
     return json({ message: 'Service temporairement indisponible.' }, 503);
   }
 }

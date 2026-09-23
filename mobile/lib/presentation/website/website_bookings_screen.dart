@@ -3,6 +3,7 @@ import 'package:intl/intl.dart';
 import '../../domain/app_failure.dart';
 import '../../domain/appointments/appointments.dart';
 import '../../domain/catalog/catalog.dart';
+import '../../domain/packs/packs.dart';
 import '../../domain/website/website_bookings.dart';
 import '../appointments/appointment_detail.dart';
 import '../appointments/booking_wizard.dart';
@@ -17,11 +18,13 @@ class WebsiteBookingsScreen extends StatefulWidget {
     required this.repository,
     required this.appointments,
     required this.catalog,
+    this.packs,
     required this.isAdmin,
   });
   final WebsiteBookingsRepository repository;
   final AppointmentsRepository appointments;
   final CatalogRepository catalog;
+  final PacksRepository? packs;
   final bool isAdmin;
   @override
   State<WebsiteBookingsScreen> createState() => _WebsiteBookingsScreenState();
@@ -30,13 +33,120 @@ class WebsiteBookingsScreen extends StatefulWidget {
 class _WebsiteBookingsScreenState extends State<WebsiteBookingsScreen> {
   WebsiteState _state = WebsiteState.review;
   List<WebsiteBooking> _items = [];
+  final Map<WebsiteState, int> _counts = {};
+  final Set<String> _actionIds = {};
+  final Map<String, String> _serviceNames = {};
   int _page = 1, _generation = 0, _total = 0;
   bool _busy = false, _more = false;
   String? _error;
   @override
   void initState() {
     super.initState();
+    _loadCounts();
+    _loadServiceNames();
     _load();
+  }
+
+  Future<void> _loadCounts() async {
+    try {
+      final pages = await Future.wait(
+        WebsiteState.values.map((state) => widget.repository.list(state)),
+      );
+      if (!mounted) return;
+      setState(() {
+        for (var i = 0; i < WebsiteState.values.length; i++) {
+          _counts[WebsiteState.values[i]] = pages[i].total;
+        }
+      });
+    } catch (_) {
+      // The active list remains usable if the badge refresh fails.
+    }
+  }
+
+  Future<void> _loadServiceNames() async {
+    try {
+      var page = 1;
+      var hasMore = true;
+      while (hasMore && page <= 100) {
+        final result = await widget.catalog.list(
+          CatalogKind.services,
+          page: page,
+        );
+        for (final entry in result.entries) {
+          _serviceNames[entry.id] = entry.name;
+        }
+        hasMore = result.hasMore;
+        page++;
+      }
+      if (mounted) setState(() {});
+    } catch (_) {
+      // Keep the queue usable if the catalog cannot be refreshed.
+    }
+  }
+
+  String _serviceNamesText(WebsiteBooking event) => event.serviceReferences
+      .map((id) => _serviceNames[id] ?? 'Prestation non retrouvée')
+      .join(', ');
+
+  Future<void> _dismissFromCard(WebsiteBooking event) async {
+    await showDialog<void>(
+      context: context,
+      builder: (_) => _DismissDialog(event: event, repository: widget.repository),
+    );
+    if (mounted) {
+      await _load();
+      await _loadCounts();
+    }
+  }
+
+  Future<void> _archiveImported(WebsiteBooking event) async {
+    if (!widget.isAdmin || event.appointmentId == null) return;
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Archiver la réservation'),
+        content: const Text(
+          'Le rendez-vous importé sera archivé et retiré des rendez-vous actifs.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Annuler'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Archiver'),
+          ),
+        ],
+      ),
+    );
+    if (confirmed != true || !mounted) return;
+    setState(() => _actionIds.add(event.id));
+    try {
+      await widget.repository.archiveImported(event);
+      if (mounted) {
+        await _load();
+        await _loadCounts();
+      }
+    } catch (error) {
+      if (mounted) {
+        await showDialog<void>(
+          context: context,
+          builder: (_) => AlertDialog(
+            title: const Text('Archivage impossible'),
+            content: Text(friendlyError(error)),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context),
+                child: const Text('Fermer'),
+              ),
+            ],
+          ),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _actionIds.remove(event.id));
+    }
   }
 
   Future<void> _load({bool next = false}) async {
@@ -96,7 +206,7 @@ class _WebsiteBookingsScreenState extends State<WebsiteBookingsScreen> {
           title: const Text('Vérifier la demande'),
           content: SingleChildScrollView(
             child: Text(
-              '${event.clientName}\n${event.phone ?? "Téléphone non fourni"}\n${DateFormat('dd/MM/yyyy · HH:mm').format(ClinicTime.local(event.start))}\n\nRéférences prestations : ${event.serviceReferences.join(', ')}\n${event.notes ?? ""}\n\nSélectionnez les fiches du cabinet correspondantes. La date demandée sera conservée.',
+              '${event.clientName}\n${event.phone ?? "Téléphone non fourni"}\n${DateFormat('dd/MM/yyyy · HH:mm').format(ClinicTime.local(event.start))}\n\nPrestations demandées : ${_serviceNamesText(event)}\n${event.notes ?? ""}\n\nSélectionnez les fiches du cabinet correspondantes. La date demandée sera conservée.',
             ),
           ),
           actions: [
@@ -131,6 +241,7 @@ class _WebsiteBookingsScreenState extends State<WebsiteBookingsScreen> {
           builder: (_) => BookingWizard(
             repository: widget.appointments,
             catalog: widget.catalog,
+            packs: widget.packs,
             websiteBooking: event,
             websiteRepository: widget.repository,
           ),
@@ -215,16 +326,23 @@ class _WebsiteBookingsScreenState extends State<WebsiteBookingsScreen> {
                                 ),
                               ),
                             ),
-                            child: Text(
-                              state.label,
-                              textAlign: TextAlign.center,
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w600,
-                                color: state == _state
-                                    ? ElmaColors.statusNew
-                                    : ElmaColors.muted,
-                              ),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  state.label,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: FontWeight.w600,
+                                    color: state == _state
+                                        ? ElmaColors.statusNew
+                                        : ElmaColors.muted,
+                                  ),
+                                ),
+                                const SizedBox(width: 5),
+                                _countBadge(_counts[state] ?? 0, state == _state),
+                              ],
                             ),
                           ),
                         ),
@@ -271,6 +389,22 @@ class _WebsiteBookingsScreenState extends State<WebsiteBookingsScreen> {
             ),
           ),
         ],
+      ),
+    ),
+  );
+
+  Widget _countBadge(int count, bool selected) => Container(
+    padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+    decoration: BoxDecoration(
+      color: selected ? ElmaColors.blue : ElmaColors.blueLight,
+      borderRadius: BorderRadius.circular(10),
+    ),
+    child: Text(
+      '$count',
+      style: TextStyle(
+        fontSize: 10,
+        fontWeight: FontWeight.w700,
+        color: selected ? Colors.white : ElmaColors.statusNew,
       ),
     ),
   );
@@ -340,6 +474,13 @@ class _WebsiteBookingsScreenState extends State<WebsiteBookingsScreen> {
                     style: const TextStyle(fontSize: 13),
                   ),
                   Text(
+                    _serviceNamesText(event),
+                    style: const TextStyle(
+                      fontSize: 12,
+                      color: ElmaColors.muted,
+                    ),
+                  ),
+                  Text(
                     DateFormat(
                       'dd/MM/yyyy · HH:mm',
                     ).format(ClinicTime.local(event.start)),
@@ -384,6 +525,36 @@ class _WebsiteBookingsScreenState extends State<WebsiteBookingsScreen> {
                       ),
                     ],
                   ),
+                  if (event.state == WebsiteState.review ||
+                      (event.state == WebsiteState.imported && widget.isAdmin))
+                    Padding(
+                      padding: const EdgeInsets.only(top: 12),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: [
+                          if (event.state == WebsiteState.review)
+                            IconButton(
+                              tooltip: 'Écarter la demande',
+                              onPressed: _actionIds.contains(event.id)
+                                  ? null
+                                  : () => _dismissFromCard(event),
+                              icon: const ElmaIcon('Close', size: 18),
+                            ),
+                          if (event.state == WebsiteState.imported)
+                            TextButton.icon(
+                              onPressed: _actionIds.contains(event.id)
+                                  ? null
+                                  : () => _archiveImported(event),
+                              icon: const ElmaIcon('Archive', size: 16),
+                              label: Text(
+                                _actionIds.contains(event.id)
+                                    ? 'Archivage…'
+                                    : 'Archiver',
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
                 ],
               ),
             ),

@@ -24,3 +24,8 @@ test('stale/conflicting changes return 409 and reject edits to snapshot/source f
   mocks.rpc.mockResolvedValue({data:null,error:{code:'23505',message:'Le rendez-vous a été modifié. Actualisez la fiche.'}});
   expect((await PATCH(request({action:'STATUS',version:1,status:'CONFIRMED'}),{params:Promise.resolve({id})})).status).toBe(409);
 });
+test('total override uses a guarded RPC and rejects malformed fields',async()=>{
+  expect((await PATCH(request({action:'TOTAL',version:1,total_centimes:15000}),{params:Promise.resolve({id})})).status).toBe(200);
+  expect(mocks.rpc).toHaveBeenCalledWith('update_appointment_total',{record_id:id,expected_version:1,total_centimes:15000});
+  expect((await PATCH(request({action:'TOTAL',version:1,total_centimes:-1}),{params:Promise.resolve({id})})).status).toBe(422);
+});

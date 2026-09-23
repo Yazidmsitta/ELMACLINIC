@@ -1,4 +1,3 @@
-import '../widgets/image_field.dart';
 import 'package:flutter/material.dart';
 import '../../domain/packs/packs.dart';
 import '../../domain/catalog/catalog.dart';
@@ -28,6 +27,35 @@ class _PacksScreenState extends State<PacksScreen> {
   bool _busy = true, _more = false;
   int _page = 0;
   String? _error;
+
+  Widget _packImage(ClinicPack pack, {double size = 56}) {
+    final name = pack.name.toLowerCase();
+    final icon = name.contains('laser')
+        ? Icons.auto_awesome
+        : name.contains('visage') || name.contains('facial')
+        ? Icons.face_retouching_natural
+        : name.contains('corps') || name.contains('massage')
+        ? Icons.spa_outlined
+        : Icons.card_giftcard_outlined;
+    return Container(
+      width: size,
+      height: size,
+      decoration: BoxDecoration(
+        color: const Color(0xFFE9E8DE),
+        borderRadius: BorderRadius.circular(12),
+        image: pack.imageUrl == null
+            ? null
+            : DecorationImage(
+                image: NetworkImage(pack.imageUrl!),
+                fit: BoxFit.cover,
+              ),
+      ),
+      child: pack.imageUrl == null
+          ? Icon(icon, color: ElmaColors.brand, size: size * .42)
+          : null,
+    );
+  }
+
   @override
   void initState() {
     super.initState();
@@ -119,66 +147,95 @@ class _PacksScreenState extends State<PacksScreen> {
                 for (final pack in _packs)
                   Container(
                     margin: const EdgeInsets.only(bottom: 12),
-                    padding: const EdgeInsets.all(16),
                     decoration: BoxDecoration(
-                      color: Colors.white,
+                      color: pack.active
+                          ? Colors.white
+                          : const Color(0xFFF4F3EE),
                       borderRadius: BorderRadius.circular(16),
                       border: Border.all(color: ElmaColors.border),
                     ),
                     child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        if (pack.imageUrl != null)
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.network(
-                              pack.imageUrl!,
-                              height: 140,
-                              width: double.infinity,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, error, stack) =>
-                                  const Text('Image indisponible'),
+                        ListTile(
+                          contentPadding: const EdgeInsets.fromLTRB(
+                            14,
+                            8,
+                            14,
+                            4,
+                          ),
+                          leading: _packImage(pack),
+                          title: Text(
+                            pack.name,
+                            style: const TextStyle(
+                              fontSize: 17,
+                              fontWeight: FontWeight.w600,
+                              fontFamily: 'Plus Jakarta Sans',
                             ),
                           ),
-                        Text(
-                          pack.name,
-                          style: const TextStyle(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
+                          subtitle: Text(
+                            '${pack.totalSessions} séance(s) · ${(pack.price / 100).toStringAsFixed(2)} MAD',
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: ElmaColors.muted,
+                              fontFamily: 'Plus Jakarta Sans',
+                            ),
                           ),
                         ),
-                        Text(
-                          '${(pack.price / 100).toStringAsFixed(2)} MAD · ${pack.active ? 'Actif' : 'Inactif'}',
-                        ),
-                        if (pack.description.isNotEmpty) Text(pack.description),
+                        if (pack.description.isNotEmpty)
+                          Padding(
+                            padding: const EdgeInsets.fromLTRB(14, 0, 14, 8),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                pack.description,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  fontSize: 13,
+                                  color: ElmaColors.muted,
+                                  fontFamily: 'Plus Jakarta Sans',
+                                ),
+                              ),
+                            ),
+                          ),
                         for (final item in pack.items.entries)
-                          Text(
-                            '${_services.where((s) => s.id == item.key).firstOrNull?.name ?? 'Prestation archivée'} · ${item.value} séance(s)',
+                          Padding(
+                            padding: const EdgeInsets.symmetric(horizontal: 14),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                '${_services.where((s) => s.id == item.key).firstOrNull?.name ?? 'Prestation archivée'} · ${item.value} séance(s)',
+                                style: const TextStyle(fontSize: 13),
+                              ),
+                            ),
                           ),
                         if (widget.isAdmin)
-                          Wrap(
-                            children: [
-                              TextButton(
-                                onPressed: _busy ? null : () => _edit(pack),
-                                child: const Text('Modifier'),
-                              ),
-                              TextButton(
-                                onPressed: _busy
-                                    ? null
-                                    : () async {
-                                        await showModalBottomSheet<void>(
-                                          context: context,
-                                          isScrollControlled: true,
-                                          builder: (_) => PackPhotoSheet(
-                                            entry: pack,
-                                            repository: widget.repository,
-                                          ),
-                                        );
-                                        if (mounted) await _load();
-                                      },
-                                child: const Text('Photo'),
-                              ),
-                            ],
+                          Align(
+                            alignment: Alignment.centerLeft,
+                            child: Wrap(
+                              children: [
+                                TextButton(
+                                  onPressed: _busy ? null : () => _edit(pack),
+                                  child: const Text('Modifier'),
+                                ),
+                                TextButton(
+                                  onPressed: _busy
+                                      ? null
+                                      : () async {
+                                          await showModalBottomSheet<void>(
+                                            context: context,
+                                            isScrollControlled: true,
+                                            builder: (_) => PackPhotoSheet(
+                                              entry: pack,
+                                              repository: widget.repository,
+                                            ),
+                                          );
+                                          if (mounted) await _load();
+                                        },
+                                  child: const Text('Photo'),
+                                ),
+                              ],
+                            ),
                           ),
                       ],
                     ),
@@ -214,13 +271,12 @@ class PackEditor extends StatefulWidget {
 }
 
 class _PackEditorState extends State<PackEditor> {
-  DraftImage? _image;
   String? _savedId;
   final _name = TextEditingController(),
       _description = TextEditingController(),
-      _price = TextEditingController();
-  late final Map<String, int> _items;
-  bool _active = true, _busy = false;
+      _price = TextEditingController(),
+      _sessionCount = TextEditingController();
+  bool _busy = false;
   String? _error;
   @override
   void initState() {
@@ -229,8 +285,7 @@ class _PackEditorState extends State<PackEditor> {
     _name.text = p?.name ?? '';
     _description.text = p?.description ?? '';
     _price.text = p == null ? '' : (p.price / 100).toStringAsFixed(2);
-    _active = p?.active ?? true;
-    _items = {...?p?.items};
+    _sessionCount.text = '${p?.totalSessions ?? 1}';
   }
 
   @override
@@ -238,18 +293,23 @@ class _PackEditorState extends State<PackEditor> {
     _name.dispose();
     _description.dispose();
     _price.dispose();
+    _sessionCount.dispose();
     super.dispose();
   }
 
   Future<void> _save() async {
     final price = parseMadCentimes(_price.text);
+    final sessions = int.tryParse(_sessionCount.text.trim());
     if (_name.text.trim().isEmpty ||
         price == null ||
         price < 0 ||
         price > 100000000 ||
-        _items.isEmpty) {
+        sessions == null ||
+        sessions < 1 ||
+        sessions > 100) {
       setState(
-        () => _error = 'Renseignez le nom, le prix et au moins une prestation.',
+        () => _error =
+            'Renseignez le nom, le prix et un nombre de séances entre 1 et 100.',
       );
       return;
     }
@@ -264,12 +324,12 @@ class _PackEditorState extends State<PackEditor> {
           name: _name.text.trim(),
           description: _description.text,
           price: price,
-          active: _active,
+          totalSessions: sessions,
+          active: widget.pack?.active ?? true,
           version: widget.pack?.version ?? 0,
-          items: _items,
+          items: const {},
         ),
       );
-      if (_image != null) await widget.repository.uploadImage(_savedId!, _image!.bytes, _image!.mime);
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (mounted) setState(() => _error = friendlyError(e));
@@ -296,19 +356,30 @@ class _PackEditorState extends State<PackEditor> {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  ImageField(enabled: !_busy, onChanged: (image) => _image = image, existingUrl: widget.pack?.imageUrl),
                   TextField(
                     controller: _name,
                     enabled: !_busy && _savedId == null,
                     maxLength: 200,
                     decoration: const InputDecoration(labelText: 'Nom du pack'),
                   ),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: _description,
                     enabled: !_busy && _savedId == null,
                     maxLength: 2000,
                     decoration: const InputDecoration(labelText: 'Description'),
                   ),
+                  const SizedBox(height: 12),
+                  TextField(
+                    controller: _sessionCount,
+                    enabled: !_busy && _savedId == null,
+                    keyboardType: TextInputType.number,
+                    decoration: const InputDecoration(
+                      labelText: 'Nombre de séances',
+                      suffixText: 'séances',
+                    ),
+                  ),
+                  const SizedBox(height: 12),
                   TextField(
                     controller: _price,
                     enabled: !_busy && _savedId == null,
@@ -319,52 +390,7 @@ class _PackEditorState extends State<PackEditor> {
                       labelText: 'Prix du pack (MAD)',
                     ),
                   ),
-                  SwitchListTile(
-                    title: const Text('Pack actif'),
-                    value: _active,
-                    onChanged: _busy
-                        ? null
-                        : (v) => setState(() => _active = v),
-                  ),
-                  const Text(
-                    'Prestations et nombre de séances',
-                    style: TextStyle(fontWeight: FontWeight.w600),
-                  ),
-                  for (final s in widget.services.where(
-                    (s) => s.active || _items.containsKey(s.id),
-                  ))
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: Row(
-                        children: [
-                          Expanded(child: Text(s.name)),
-                          DropdownButton<int>(
-                            value: _items[s.id] ?? 0,
-                            underline: const SizedBox.shrink(),
-                            onChanged: _busy
-                                ? null
-                                : (sessions) => setState(() {
-                                    if (sessions == null || sessions == 0) {
-                                      _items.remove(s.id);
-                                    } else {
-                                      _items[s.id] = sessions;
-                                    }
-                                  }),
-                            items: [
-                              const DropdownMenuItem(
-                                value: 0,
-                                child: Text('Ajouter'),
-                              ),
-                              for (var sessions = 1; sessions <= 100; sessions++)
-                                DropdownMenuItem(
-                                  value: sessions,
-                                  child: Text('$sessions séance(s)'),
-                                ),
-                            ],
-                          ),
-                        ],
-                      ),
-                    ),
+                  const SizedBox(height: 8),
                   if (_error != null)
                     Text(
                       _error!,

@@ -58,9 +58,27 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
 
   Future<void> _adjustPackSessions(ClientPackSummary pack, int delta) async {
     if (_adjustingPack != null) return;
-    if (delta < 0 && pack.totalSessions <= pack.completedSessions) {
+    if (delta == 0) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Impossible de retirer une séance déjà terminée.')),
+        const SnackBar(content: Text('Aucune modification à enregistrer.')),
+      );
+      return;
+    }
+    if (pack.totalSessions <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Ce pack n’a pas de séances achetées.')),
+      );
+      return;
+    }
+    if (delta < 0 && pack.completedSessions <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Aucune séance à supprimer.')),
+      );
+      return;
+    }
+    if (delta > 0 && pack.remainingSessions <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Toutes les séances du pack sont déjà terminées.')),
       );
       return;
     }
@@ -77,7 +95,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(delta > 0 ? 'Séance ajoutée.' : 'Séance retirée.'),
+          content: Text(delta > 0 ? 'Séance marquée faite.' : 'Séance supprimée.'),
         ),
       );
       await _load();
@@ -265,7 +283,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
           ),
           const SizedBox(height: 4),
           const Text(
-            'Passez le rendez-vous du jour en “Terminé” pour confirmer la séance.',
+            'Ajoutez une séance faite sans rendez-vous, ou supprimez une séance ajoutée par erreur.',
             style: TextStyle(fontSize: 11, color: ElmaColors.muted),
           ),
           const SizedBox(height: 12),
@@ -274,8 +292,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
               Expanded(
                 child: OutlinedButton.icon(
                   onPressed:
-                      _adjustingPack == null &&
-                          pack.totalSessions > pack.completedSessions
+                      _adjustingPack == null && pack.completedSessions > 0
                       ? () => _adjustPackSessions(pack, -1)
                       : null,
                   icon: _adjustingPack == pack.packId
@@ -285,7 +302,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                           child: CircularProgressIndicator(strokeWidth: 2),
                         )
                       : const Icon(Icons.remove, size: 16),
-                  label: const Text('Retirer'),
+                  label: const Text('Supprimer'),
                 ),
               ),
               const SizedBox(width: 10),
@@ -295,7 +312,7 @@ class _ClientDetailScreenState extends State<ClientDetailScreen> {
                       ? () => _adjustPackSessions(pack, 1)
                       : null,
                   icon: const Icon(Icons.add, size: 16),
-                  label: const Text('Ajouter'),
+                  label: const Text('Ajouter faite'),
                 ),
               ),
             ],

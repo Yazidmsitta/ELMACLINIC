@@ -29,10 +29,18 @@ android {
         versionName = flutter.versionName
     }
 
+    signingConfigs {
+        create("release") {
+            storeFile = file("upload-keystore.jks")
+            storePassword = System.getenv("ELMA_KEYSTORE_PASSWORD")
+            keyAlias = "elmaclinic-upload"
+            keyPassword = System.getenv("ELMA_KEY_PASSWORD")
+        }
+    }
+
     buildTypes {
         release {
-            // Configure a private release signing key before distribution.
-            // Release artifacts deliberately do not use debug signing keys.
+            signingConfig = signingConfigs.getByName("release")
         }
     }
 }

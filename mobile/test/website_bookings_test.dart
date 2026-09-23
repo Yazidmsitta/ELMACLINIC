@@ -10,6 +10,8 @@ import 'catalog_test.dart' show FakeCatalog, catalogApp;
 
 class FakeWebsite implements WebsiteBookingsRepository {
   @override
+  Future<void> archiveImported(WebsiteBooking event) async {}
+  @override
   Future<void> dismiss(WebsiteBooking event, String reason) async {
     if (failDismiss) throw const AppFailure('Échec de l’enregistrement.');
     dismissedReason = reason;
@@ -46,6 +48,7 @@ class FakeWebsite implements WebsiteBookingsRepository {
     WebsiteBooking event,
     BookingSelection selection,
     BookingQuote quote,
+    String? notes,
   ) async {
     imports++;
     importedStart = selection.start;

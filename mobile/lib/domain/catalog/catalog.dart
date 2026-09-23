@@ -49,7 +49,6 @@ class CatalogPage {
   final bool hasMore;
 }
 
-
 class ClientPackSummary {
   const ClientPackSummary({
     required this.packId,
@@ -77,17 +76,18 @@ class ClientProfile {
 
 abstract interface class CatalogRepository {
   Future<ClientProfile> clientProfile(String id);
-  Future<ClientPackSummary> adjustClientPackSessions(
-    String clientId,
-    String packId,
-    int delta,
-  );
   Future<PractitionerAvailability> availability(String id);
   Future<void> saveAvailability(
     String id,
     PractitionerAvailability availability,
   );
   Future<void> uploadImage(String id, Uint8List bytes, String mimeType);
+  Future<void> adjustClientPackSessions(
+    String clientId,
+    String packId,
+    int delta, {
+    String? reason,
+  });
   Future<CatalogPage> list(
     CatalogKind kind, {
     int page = 1,
@@ -114,8 +114,18 @@ class TimeOff {
   final DateTime start, end;
 }
 
+class BusySlot {
+  const BusySlot(this.start, this.end);
+  final DateTime start, end;
+}
+
 class PractitionerAvailability {
-  const PractitionerAvailability(this.shifts, this.absences);
+  const PractitionerAvailability(
+    this.shifts,
+    this.absences, {
+    this.busy = const [],
+  });
   final List<WeeklyShift> shifts;
   final List<TimeOff> absences;
+  final List<BusySlot> busy;
 }

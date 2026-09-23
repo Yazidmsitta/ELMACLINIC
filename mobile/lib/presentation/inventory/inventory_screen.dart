@@ -17,6 +17,7 @@ class InventoryScreen extends StatefulWidget {
 class _InventoryScreenState extends State<InventoryScreen> {
   final _items = <StockProduct>[];
   bool _busy = false, _more = false;
+  String _filter = 'Tous';
   int _page = 0, _generation = 0;
   String? _error;
   @override
@@ -66,6 +67,17 @@ class _InventoryScreenState extends State<InventoryScreen> {
     if (mounted) await _load();
   }
 
+  List<StockProduct> get _visibleItems => _items.where((product) {
+    final quantity = quantityMilli(product.quantity)!;
+    final threshold = quantityMilli(product.threshold)!;
+    final status = quantity <= 0
+        ? 'Rupture'
+        : quantity < threshold
+        ? 'Stock bas'
+        : 'En stock';
+    return _filter == 'Tous' || _filter == status;
+  }).toList();
+
   @override
   Widget build(BuildContext context) => Scaffold(
     body: SafeArea(
@@ -73,6 +85,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
         children: [
           ElmaHeader(
             'Inventaire',
+            subtitle: 'Produits utilisés par la clinique',
             leading: IconButton(
               tooltip: 'Retour',
               onPressed: () => Navigator.of(context).pop(),
@@ -90,7 +103,20 @@ class _InventoryScreenState extends State<InventoryScreen> {
               child: ListView(
                 padding: const EdgeInsets.all(20),
                 children: [
-                  for (final product in _items) _card(product),
+                  const SizedBox(height: 20),
+                  Wrap(
+                    spacing: 8,
+                    children: [
+                      for (final filter in ['Tous', 'Stock bas', 'Rupture'])
+                        ElmaFilterChip(
+                          label: Text(filter),
+                          selected: _filter == filter,
+                          onSelected: (_) => setState(() => _filter = filter),
+                        ),
+                    ],
+                  ),
+                  const SizedBox(height: 16),
+                  for (final product in _visibleItems) _card(product),
                   if (_busy) const Center(child: CircularProgressIndicator()),
                   if (_error != null) ...[
                     Text(_error!),
@@ -100,7 +126,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                     ),
                   ],
                   if (!_busy && _error == null && _items.isEmpty)
-                    const Text('Aucun produit.'),
+                    const Text('Aucun produit utilisé par la clinique.'),
                   if (!_busy && _error == null && _more)
                     TextButton(
                       onPressed: () => _load(next: true),
@@ -115,14 +141,6 @@ class _InventoryScreenState extends State<InventoryScreen> {
     ),
   );
   Widget _card(StockProduct product) {
-    final quantity = quantityMilli(product.quantity)!,
-        threshold = quantityMilli(product.threshold)!;
-    final out = quantity <= 0, low = quantity > 0 && quantity < threshold;
-    final color = out
-        ? ElmaColors.red
-        : low
-        ? ElmaColors.amber
-        : ElmaColors.brand;
     return Padding(
       padding: const EdgeInsets.only(bottom: 10),
       child: Material(
@@ -155,7 +173,7 @@ class _InventoryScreenState extends State<InventoryScreen> {
                             ),
                           ),
                           Text(
-                            product.sku,
+                            'Produit utilisé par la clinique',
                             style: const TextStyle(
                               fontSize: 12,
                               color: ElmaColors.muted,
@@ -164,45 +182,14 @@ class _InventoryScreenState extends State<InventoryScreen> {
                         ],
                       ),
                     ),
-                    Text(
-                      !product.active
-                          ? 'Inactif'
-                          : out
-                          ? 'Rupture'
-                          : low
-                          ? 'Stock bas'
-                          : 'En stock',
-                      style: TextStyle(
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: color,
-                      ),
-                    ),
-                    IconButton(
-                      tooltip: 'Modifier le produit',
-                      onPressed: () => _sheet(product: product),
-                      icon: const ElmaIcon('Edit', size: 18),
-                    ),
                   ],
                 ),
                 Text(
-                  '${product.quantity} ${product.unit} · min. ${product.threshold}',
+                  '${product.quantity} ${product.unit} en stock',
                   style: const TextStyle(
                     fontSize: 13,
                     fontWeight: FontWeight.w600,
                   ),
-                ),
-                const SizedBox(height: 10),
-                LinearProgressIndicator(
-                  value: threshold > 0
-                      ? (quantity / (threshold * 2)).clamp(0.0, 1.0)
-                      : quantity > 0
-                      ? 1
-                      : 0,
-                  color: color,
-                  backgroundColor: ElmaColors.surface,
-                  minHeight: 6,
-                  borderRadius: BorderRadius.circular(8),
                 ),
               ],
             ),
@@ -242,6 +229,7 @@ class _InventorySheetState extends State<InventorySheet> {
     for (final entry in {
       'SKU': p?.sku ?? '',
       'Nom du produit': p?.name ?? '',
+      'Quantité en stock': p?.quantity ?? '0',
       'Unité': p?.unit ?? 'unité',
       'Stock minimum': p?.threshold ?? '0',
       'Prix d’achat (MAD)': p == null
@@ -282,17 +270,25 @@ class _InventorySheetState extends State<InventorySheet> {
       } else {
         _savedId ??= await widget.repository.save(
           ProductDraft(
-            value('SKU'),
+            widget.product?.sku ??
+                'INV-${DateTime.now().millisecondsSinceEpoch}',
             value('Nom du produit'),
-            value('Unité'),
-            parseMadCentimes(value('Prix d’achat (MAD)')) ?? 0,
-            value('Stock minimum').replaceAll(',', '.'),
+            'unité',
+            0,
+            '0',
             _active,
+            initialQuantity: value('Quantité en stock').replaceAll(',', '.'),
           ),
           product: widget.product,
         );
       }
-      if (!widget.adjust && _image != null) await widget.repository.uploadImage(_savedId!, _image!.bytes, _image!.mime);
+      if (!widget.adjust && _image != null) {
+        await widget.repository.uploadImage(
+          _savedId!,
+          _image!.bytes,
+          _image!.mime,
+        );
+      }
       if (mounted) Navigator.of(context).pop();
     } catch (error) {
       if (mounted) setState(() => _error = friendlyError(error));
@@ -306,13 +302,7 @@ class _InventorySheetState extends State<InventorySheet> {
     final locked = _busy || _savedId != null || (widget.adjust && _submitted);
     final labels = widget.adjust
         ? ['Quantité à ajouter ou retirer', 'Motif']
-        : [
-            'SKU',
-            'Nom du produit',
-            'Unité',
-            'Stock minimum',
-            'Prix d’achat (MAD)',
-          ];
+        : ['Nom du produit', 'Quantité en stock'];
     return PopScope(
       canPop: !_busy,
       child: Padding(
@@ -357,47 +347,113 @@ class _InventorySheetState extends State<InventorySheet> {
                     Text(
                       'Stock actuel : ${widget.product!.quantity} ${widget.product!.unit}. Une quantité négative retire du stock.',
                     ),
-                  if (!widget.adjust) ImageField(enabled: !_busy, onChanged: (image) => _image = image),
                   for (final label in labels)
                     Padding(
                       padding: const EdgeInsets.only(top: 16),
-                      child: TextFormField(
-                        controller: _fields[label],
-                        enabled: !locked,
-                        decoration: InputDecoration(labelText: label),
-                        validator: (raw) {
-                          final value = (raw ?? '').trim();
-                          if (label == 'Stock minimum' ||
-                              label == 'Quantité à ajouter ou retirer') {
-                            final number = quantityMilli(
-                              value.replaceAll(',', '.'),
-                            );
-                            if (number == null ||
-                                (label == 'Stock minimum'
-                                    ? number < 0
-                                    : number == 0)) {
-                              return 'Quantité invalide (3 décimales maximum).';
-                            }
-                          } else if (label == 'Prix d’achat (MAD)') {
-                            if (!RegExp(r'^0([.,]0{1,2})?$').hasMatch(value) &&
-                                parseMadCentimes(value) == null) {
-                              return 'Montant invalide.';
-                            }
-                          } else {
-                            final max = label == 'SKU'
-                                ? 100
-                                : label == 'Unité'
-                                ? 40
-                                : label == 'Motif'
-                                ? 500
-                                : 200;
-                            if (value.length < (label == 'Motif' ? 3 : 1) ||
-                                value.length > max) {
-                              return 'Saisissez ${label == 'Motif' ? 3 : 1} à $max caractères.';
-                            }
-                          }
-                          return null;
-                        },
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          TextFormField(
+                            controller: _fields[label],
+                            enabled: !locked,
+                            decoration: InputDecoration(
+                              labelText: label,
+                              filled: true,
+                              fillColor: const Color(0xFFF5F1EA),
+                              border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(
+                                  color: ElmaColors.border,
+                                ),
+                              ),
+                              enabledBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(
+                                  color: ElmaColors.border,
+                                ),
+                              ),
+                              focusedBorder: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(14),
+                                borderSide: const BorderSide(
+                                  color: ElmaColors.brand,
+                                  width: 1.5,
+                                ),
+                              ),
+                              contentPadding: const EdgeInsets.symmetric(
+                                horizontal: 16,
+                                vertical: 18,
+                              ),
+                            ),
+                            validator: (raw) {
+                              final value = (raw ?? '').trim();
+                              if (label == 'Stock minimum' ||
+                                  label == 'Quantité en stock' ||
+                                  label == 'Quantité à ajouter ou retirer') {
+                                final number = quantityMilli(
+                                  value.replaceAll(',', '.'),
+                                );
+                                final invalid =
+                                    number == null ||
+                                    ((label == 'Stock minimum' ||
+                                            label == 'Quantité en stock')
+                                        ? number < 0
+                                        : number == 0);
+                                if (invalid) {
+                                  return 'Quantité invalide (3 décimales maximum).';
+                                }
+                              } else if (label == 'Prix d’achat (MAD)') {
+                                if (!RegExp(
+                                      r'^0([.,]0{1,2})?$',
+                                    ).hasMatch(value) &&
+                                    parseMadCentimes(value) == null) {
+                                  return 'Montant invalide.';
+                                }
+                              } else {
+                                final max = label == 'SKU'
+                                    ? 100
+                                    : label == 'Unité'
+                                    ? 40
+                                    : label == 'Motif'
+                                    ? 500
+                                    : 200;
+                                if (value.length < (label == 'Motif' ? 3 : 1) ||
+                                    value.length > max) {
+                                  return 'Saisissez ${label == 'Motif' ? 3 : 1} à $max caractères.';
+                                }
+                              }
+                              return null;
+                            },
+                          ),
+                          if (widget.adjust &&
+                              label == 'Quantité à ajouter ou retirer')
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: locked
+                                        ? null
+                                        : () => setState(
+                                            () => _fields[label]!.text = '-1',
+                                          ),
+                                    icon: const Icon(Icons.remove),
+                                    label: const Text('Retirer 1'),
+                                  ),
+                                ),
+                                const SizedBox(width: 10),
+                                Expanded(
+                                  child: OutlinedButton.icon(
+                                    onPressed: locked
+                                        ? null
+                                        : () => setState(
+                                            () => _fields[label]!.text = '1',
+                                          ),
+                                    icon: const Icon(Icons.add),
+                                    label: const Text('Ajouter 1'),
+                                  ),
+                                ),
+                              ],
+                            ),
+                        ],
                       ),
                     ),
                   if (!widget.adjust)
@@ -405,6 +461,10 @@ class _InventorySheetState extends State<InventorySheet> {
                       contentPadding: EdgeInsets.zero,
                       title: const Text('Produit actif'),
                       value: _active,
+                      activeColor: Colors.white,
+                      activeTrackColor: ElmaColors.brand,
+                      inactiveThumbColor: Colors.white,
+                      inactiveTrackColor: const Color(0xFFD0D0D0),
                       onChanged: _busy
                           ? null
                           : (value) => setState(() => _active = value),

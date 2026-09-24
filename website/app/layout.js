@@ -16,18 +16,18 @@ const displayFont = Syne({
 export const metadata = {
   metadataBase: new URL("https://elmaclinic.com"),
   title: {
-    default: "ELMA Clinic | Laser, skincare & esthétique à Kénitra",
-    template: "%s | ELMA Clinic",
+    default: "ELMACLINIC | Laser, skincare & esthétique à Kénitra",
+    template: "%s | ELMACLINIC",
   },
   description:
-    "ELMA Clinic à Kénitra : épilation laser, soins du visage, head spa et rituels bien-être avec diagnostic et suivi personnalisé.",
+    "ELMACLINIC à Kénitra : épilation laser, soins du visage, head spa et rituels bien-être avec diagnostic et suivi personnalisé.",
   alternates: { canonical: "/" },
   openGraph: {
     type: "website",
     locale: "fr_MA",
     url: "/",
-    siteName: "ELMA Clinic",
-    title: "ELMA Clinic | La beauté, précise.",
+    siteName: "ELMACLINIC",
+    title: "ELMACLINIC | La beauté, précise.",
     description: "Laser, skincare et soins experts à Kénitra.",
     images: [{ url: "/assets/elma-hero-editorial.webp", width: 1600, height: 1000 }],
   },

@@ -47,15 +47,15 @@ export default function HomePage({ catalog, catalogLive, whatsapp }) {
     scrollToSection(id);
   }
 
-  const adviceMessage = encodeURIComponent("Bonjour ELMA Clinic, je souhaite un conseil pour choisir le soin adapté.");
+  const adviceMessage = encodeURIComponent("Bonjour ELMACLINIC, je souhaite un conseil pour choisir le soin adapté.");
 
   return (
     <>
       <a className="skip-link" href="#main-content">Aller au contenu</a>
       <div className="site-shell">
         <header className="topbar">
-          <button className="brand" type="button" onClick={() => navigate("accueil")} aria-label="ELMA Clinic — Accueil">
-            <Image src="/assets/logo-nav.png" alt="ELMA Clinic" width={200} height={76} priority />
+          <button className="brand" type="button" onClick={() => navigate("accueil")} aria-label="ELMACLINIC — Accueil">
+            <Image src="/assets/logo-nav.png" alt="ELMACLINIC" width={200} height={76} priority />
           </button>
           <nav className={`main-nav ${menuOpen ? "is-open" : ""}`} aria-label="Navigation principale">
             <button type="button" onClick={() => navigate("soins")}>Soins</button>
@@ -109,13 +109,13 @@ export default function HomePage({ catalog, catalogLive, whatsapp }) {
               <p>Expliquez-nous votre besoin et envoyez une photo si nécessaire. L’équipe vous orientera avant la réservation.</p>
               <a className="button button-dark" href={`https://wa.me/${whatsapp}?text=${adviceMessage}`} target="_blank" rel="noreferrer"><Icon>chat</Icon> Demander un conseil</a>
             </div>
-            <div className="advice-image reveal"><Image src="/assets/elma-clinic-elmaclinic-kenitra-maroc-morocco-5.webp" alt="Consultation personnalisée ELMA Clinic" fill sizes="(max-width: 900px) 100vw, 50vw" /></div>
+            <div className="advice-image reveal"><Image src="/assets/elma-clinic-elmaclinic-kenitra-maroc-morocco-5.webp" alt="Consultation personnalisée ELMACLINIC" fill sizes="(max-width: 900px) 100vw, 50vw" /></div>
           </section>
 
           <section className="section expertise-section" id="clinique" aria-labelledby="expertise-title">
             <div className="expertise-words reveal"><span>Expertise.</span><span>Technologie.</span><span>Suivi.</span></div>
             <div className="expertise-layout">
-              <div className="expertise-image reveal"><Image src="/assets/hero.webp" alt="Accueil ELMA Clinic à Kénitra" fill sizes="(max-width: 900px) 100vw, 55vw" /></div>
+              <div className="expertise-image reveal"><Image src="/assets/hero.webp" alt="Accueil ELMACLINIC à Kénitra" fill sizes="(max-width: 900px) 100vw, 55vw" /></div>
               <div className="expertise-copy reveal">
                 <p className="kicker">Une approche sur mesure</p>
                 <h2 id="expertise-title">Comprendre avant de traiter.</h2>
@@ -140,7 +140,7 @@ export default function HomePage({ catalog, catalogLive, whatsapp }) {
           <section className="section social-section" aria-labelledby="social-title">
             <div className="social-head reveal"><h2 id="social-title">Suivez-nous sur Instagram</h2><a href="https://www.instagram.com/elmaclinic_maroc" target="_blank" rel="noreferrer">@elmaclinic_maroc <Icon>arrow_outward</Icon></a></div>
             <div className="social-grid reveal">
-              {socialImages.map((image) => <a href="https://www.instagram.com/elmaclinic_maroc" target="_blank" rel="noreferrer" key={image}><Image src={`/assets/${image}`} alt="ELMA Clinic sur Instagram" fill sizes="(max-width: 900px) 33vw, 20vw" /></a>)}
+              {socialImages.map((image) => <a href="https://www.instagram.com/elmaclinic_maroc" target="_blank" rel="noreferrer" key={image}><Image src={`/assets/${image}`} alt="ELMACLINIC sur Instagram" fill sizes="(max-width: 900px) 33vw, 20vw" /></a>)}
             </div>
           </section>
 
@@ -154,18 +154,18 @@ export default function HomePage({ catalog, catalogLive, whatsapp }) {
               </div>
               <div className="contact-details">
                 <div><small>Adresse</small><p>Angle Av. Mohamed Diouri, Kénitra</p></div>
-                <div><small>Contact</small><p><a href="tel:+212666541050">+212 6 66 54 10 50</a><br /><a href="mailto:contact@elmaclinic.com">contact@elmaclinic.com</a></p></div>
+                <div><small>Contact</small><p><a href="tel:+212666541050">+212 6 66 54 10 50</a><br /><a href="mailto:elmakhfiwiclinic@gmail.com">elmakhfiwiclinic@gmail.com</a></p></div>
                 <div><small>Horaires</small><p>Lun—Sam · 10:00—21:00</p></div>
               </div>
             </div>
-            <div className="map-wrap reveal"><iframe title="ELMA Clinic sur Google Maps" src="https://www.google.com/maps?q=ELMA%20Clinic%20Kenitra%20Morocco&output=embed" loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></div>
+            <div className="map-wrap reveal"><iframe title="ELMACLINIC sur Google Maps" src="https://www.google.com/maps?q=ELMA%20Clinic%20Kenitra%20Morocco&output=embed" loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></div>
             <footer className="site-footer">
               <div className="site-footer-brand">
-                <Image src="/assets/logo-nav.png" alt="ELMA Clinic" width={150} height={52} />
+                <Image src="/assets/logo-nav.png" alt="ELMACLINIC" width={150} height={52} />
               </div>
               <p className="site-footer-center">Beauté experte · Kénitra</p>
               <div className="site-footer-actions">
-                <p>© {new Date().getFullYear()} ELMA Clinic</p>
+                <p>© {new Date().getFullYear()} ELMACLINIC</p>
                 <a className="button button-light footer-whatsapp" href={`https://wa.me/${whatsapp}?text=${adviceMessage}`} target="_blank" rel="noreferrer"><Icon>chat</Icon><span>WhatsApp</span></a>
               </div>
             </footer>

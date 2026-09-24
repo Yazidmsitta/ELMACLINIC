@@ -15,20 +15,9 @@ export default function BookingForm({ services, whatsapp }) {
     return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   }, []);
 
-  const availableTimes = useMemo(() => {
-    const slots = [];
-    for (let hour = 10; hour <= 20; hour += 1) {
-      for (const minute of ["00", "30"]) {
-        const time = `${String(hour).padStart(2, "0")}:${minute}`;
-        if (time >= "10:00" && time <= "20:30") slots.push(time);
-      }
-    }
-    return slots;
-  }, []);
-
   const selectedService = services.find((service) => service.id === values.service_id)?.name;
   const whatsappMessage = [
-    "Bonjour ELMA Clinic, je souhaite prendre rendez-vous.",
+    "Bonjour ELMACLINIC, je souhaite prendre rendez-vous.",
     selectedService ? `Soin : ${selectedService}` : "",
     values.date ? `Date : ${values.date}` : "",
     values.time ? `Heure : ${values.time}` : "",
@@ -37,12 +26,6 @@ export default function BookingForm({ services, whatsapp }) {
 
   function updateValue(event) {
     const { name, value } = event.target;
-    if (name === "time" && value && !availableTimes.includes(value)) {
-      setValues((current) => ({ ...current, [name]: "" }));
-      setMessage("Veuillez choisir une heure proposée parmi les créneaux disponibles.");
-      setState("error");
-      return;
-    }
     if (name in values) setValues((current) => ({ ...current, [name]: value }));
   }
 
@@ -97,15 +80,7 @@ export default function BookingForm({ services, whatsapp }) {
         </label>
 
         <label className="field"><span>Date</span><input name="date" type="date" min={today} required /></label>
-        <label className="field">
-          <span>Heure souhaitée</span>
-          <select name="time" value={values.time} required onChange={updateValue}>
-            <option value="">Choisir une heure</option>
-            {availableTimes.map((slot) => (
-              <option key={slot} value={slot}>{slot}</option>
-            ))}
-          </select>
-        </label>
+        <label className="field"><span>Heure souhaitée</span><input name="time" type="time" min="10:00" max="21:00" step="1800" required /></label>
         <label className="field"><span>Nom</span><input name="full_name" autoComplete="name" placeholder="Votre nom" required /></label>
         <label className="field"><span>Téléphone</span><input name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="06 12 34 56 78" required /></label>
         <label className="field"><span>Email <small>optionnel</small></span><input name="email" type="email" autoComplete="email" placeholder="vous@email.com" /></label>

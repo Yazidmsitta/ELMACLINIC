@@ -55,7 +55,7 @@ export default function HomePage({ catalog, catalogLive, whatsapp }) {
       <div className="site-shell">
         <header className="topbar">
           <button className="brand" type="button" onClick={() => navigate("accueil")} aria-label="ELMACLINIC — Accueil">
-            <Image src="/assets/logo-nav.png" alt="ELMACLINIC" width={200} height={76} priority />
+            <Image src="/assets/logo-nav.svg" alt="ELMACLINIC" width={220} height={90} priority />
           </button>
           <nav className={`main-nav ${menuOpen ? "is-open" : ""}`} aria-label="Navigation principale">
             <button type="button" onClick={() => navigate("soins")}>Soins</button>
@@ -161,7 +161,7 @@ export default function HomePage({ catalog, catalogLive, whatsapp }) {
             <div className="map-wrap reveal"><iframe title="ELMACLINIC sur Google Maps" src="https://www.google.com/maps?q=ELMA%20Clinic%20Kenitra%20Morocco&output=embed" loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></div>
             <footer className="site-footer">
               <div className="site-footer-brand">
-                <Image src="/assets/logo-nav.png" alt="ELMACLINIC" width={150} height={52} />
+                <Image src="/assets/logo-nav.svg" alt="ELMACLINIC" width={170} height={64} />
               </div>
               <p className="site-footer-center">Beauté experte · Kénitra</p>
               <div className="site-footer-actions">

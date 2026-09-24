@@ -15,6 +15,48 @@ export default function BookingForm({ services, whatsapp }) {
     return new Date(now.getTime() - now.getTimezoneOffset() * 60000).toISOString().slice(0, 10);
   }, []);
 
+  const getCasablancaToday = () => {
+    const parts = new Intl.DateTimeFormat("en-CA", {
+      timeZone: "Africa/Casablanca",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: false,
+    }).formatToParts(new Date());
+    const valuesByType = {};
+    parts.forEach((part) => {
+      if (part.type !== "literal") valuesByType[part.type] = part.value;
+    });
+    return {
+      date: `${valuesByType.year}-${valuesByType.month}-${valuesByType.day}`,
+      minutes: Number(valuesByType.hour) * 60 + Number(valuesByType.minute),
+    };
+  };
+
+  const allTimes = useMemo(() => {
+    const slots = [];
+    for (let minutes = 10 * 60; minutes <= 20 * 60 + 30; minutes += 30) {
+      const hour = String(Math.floor(minutes / 60)).padStart(2, "0");
+      const minute = String(minutes % 60).padStart(2, "0");
+      slots.push(`${hour}:${minute}`);
+    }
+    return slots;
+  }, []);
+
+  const availableTimes = useMemo(() => {
+    if (!values.date) return allTimes;
+    const casablancaNow = getCasablancaToday();
+    const isToday = values.date === casablancaNow.date;
+    if (!isToday) return allTimes;
+
+    return allTimes.filter((slot) => {
+      const [slotHour, slotMinute] = slot.split(":").map(Number);
+      return slotHour * 60 + slotMinute > casablancaNow.minutes;
+    });
+  }, [allTimes, values.date]);
+
   const selectedService = services.find((service) => service.id === values.service_id)?.name;
   const whatsappMessage = [
     "Bonjour ELMACLINIC, je souhaite prendre rendez-vous.",
@@ -26,7 +68,12 @@ export default function BookingForm({ services, whatsapp }) {
 
   function updateValue(event) {
     const { name, value } = event.target;
-    if (name in values) setValues((current) => ({ ...current, [name]: value }));
+    if (!(name in values)) return;
+    setValues((current) => {
+      const next = { ...current, [name]: value };
+      if (name === "date") next.time = "";
+      return next;
+    });
   }
 
   async function submit(event) {
@@ -79,8 +126,15 @@ export default function BookingForm({ services, whatsapp }) {
           </select>
         </label>
 
-        <label className="field"><span>Date</span><input name="date" type="date" min={today} required /></label>
-        <label className="field"><span>Heure souhaitée</span><input name="time" type="time" min="10:00" max="21:00" step="1800" required /></label>
+        <label className="field"><span>Date</span><input name="date" type="date" min={today} value={values.date} onChange={updateValue} required /></label>
+        <label className="field"><span>Heure souhaitée</span>
+          <select name="time" value={values.time} onChange={updateValue} required>
+            <option value="">{values.date ? (availableTimes.length ? "Choisir une heure" : "Aucune heure disponible") : "Choisir une date d’abord"}</option>
+            {(values.date ? availableTimes : allTimes).map((time) => (
+              <option key={time} value={time}>{time}</option>
+            ))}
+          </select>
+        </label>
         <label className="field"><span>Nom</span><input name="full_name" autoComplete="name" placeholder="Votre nom" required /></label>
         <label className="field"><span>Téléphone</span><input name="phone" type="tel" inputMode="tel" autoComplete="tel" placeholder="06 12 34 56 78" required /></label>
         <label className="field"><span>Email <small>optionnel</small></span><input name="email" type="email" autoComplete="email" placeholder="vous@email.com" /></label>

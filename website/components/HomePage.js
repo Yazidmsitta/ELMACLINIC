@@ -55,7 +55,7 @@ export default function HomePage({ catalog, catalogLive, whatsapp }) {
       <div className="site-shell">
         <header className="topbar">
           <button className="brand" type="button" onClick={() => navigate("accueil")} aria-label="ELMACLINIC — Accueil">
-            <Image src="/assets/logo-nav.svg" alt="ELMACLINIC" width={220} height={90} priority />
+            <Image src="/assets/logo-nav.svg" alt="ELMACLINIC" width={180} height={72} priority />
           </button>
           <nav className={`main-nav ${menuOpen ? "is-open" : ""}`} aria-label="Navigation principale">
             <button type="button" onClick={() => navigate("soins")}>Soins</button>

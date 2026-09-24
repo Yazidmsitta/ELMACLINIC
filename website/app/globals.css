@@ -33,8 +33,8 @@ h1 em, h2 em { font-family: Georgia, serif; font-weight: 400; }
 .section { padding: clamp(58px, 7vw, 112px) clamp(24px, 5.5vw, 84px); background: var(--paper); }
 
 .topbar { position: sticky; top: 14px; z-index: 100; height: 88px; margin-bottom: 14px; padding: 0 22px 0 30px; display: grid; grid-template-columns: 210px 1fr 210px; align-items: center; background: var(--olive); border: 1px solid rgba(255,255,255,.45); border-radius: 26px; backdrop-filter: blur(18px); box-shadow: 0 12px 30px rgba(34,35,28,.12); }
-.brand { width: 220px; padding: 0; display: inline-flex; align-items: center; background: none; border: 0; cursor: pointer; }
-.brand img { width: clamp(145px, 13vw, 220px); height: auto; object-fit: contain; }
+.brand { width: 180px; padding: 0; display: inline-flex; align-items: center; background: none; border: 0; cursor: pointer; }
+.brand img { width: clamp(120px, 10vw, 180px); height: auto; object-fit: contain; }
 .main-nav { justify-self: center; display: flex; gap: clamp(22px, 3vw, 44px); }
 .main-nav button { position: relative; padding: 8px 0; background: none; border: 0; cursor: pointer; font-size: 14px; color: white; }
 .main-nav button::after { content: ""; position: absolute; left: 0; right: 100%; bottom: 2px; height: 1px; background: white; transition: right .35s var(--ease); }

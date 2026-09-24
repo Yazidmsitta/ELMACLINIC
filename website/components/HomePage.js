@@ -55,7 +55,7 @@ export default function HomePage({ catalog, catalogLive, whatsapp }) {
       <div className="site-shell">
         <header className="topbar">
           <button className="brand" type="button" onClick={() => navigate("accueil")} aria-label="ELMA Clinic — Accueil">
-            <Image src="/assets/elma-logo.png" alt="ELMA Clinic" width={154} height={58} priority />
+            <Image src="/assets/logo-nav.png" alt="ELMA Clinic" width={200} height={76} priority />
           </button>
           <nav className={`main-nav ${menuOpen ? "is-open" : ""}`} aria-label="Navigation principale">
             <button type="button" onClick={() => navigate("soins")}>Soins</button>
@@ -159,7 +159,16 @@ export default function HomePage({ catalog, catalogLive, whatsapp }) {
               </div>
             </div>
             <div className="map-wrap reveal"><iframe title="ELMA Clinic sur Google Maps" src="https://www.google.com/maps?q=ELMA%20Clinic%20Kenitra%20Morocco&output=embed" loading="lazy" referrerPolicy="no-referrer-when-downgrade" /></div>
-            <footer className="site-footer"><Image src="/assets/elma-logo-trimmed.png" alt="ELMA Clinic" width={122} height={48} /><p>Beauté experte · Kénitra</p><p>© {new Date().getFullYear()} ELMA Clinic</p></footer>
+            <footer className="site-footer">
+              <div className="site-footer-brand">
+                <Image src="/assets/logo-nav.png" alt="ELMA Clinic" width={150} height={52} />
+              </div>
+              <p className="site-footer-center">Beauté experte · Kénitra</p>
+              <div className="site-footer-actions">
+                <p>© {new Date().getFullYear()} ELMA Clinic</p>
+                <a className="button button-light footer-whatsapp" href={`https://wa.me/${whatsapp}?text=${adviceMessage}`} target="_blank" rel="noreferrer"><Icon>chat</Icon><span>WhatsApp</span></a>
+              </div>
+            </footer>
           </section>
         </main>
       </div>

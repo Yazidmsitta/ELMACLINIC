@@ -32,16 +32,16 @@ h1 em, h2 em { font-family: Georgia, serif; font-weight: 400; }
 .section, .hero, .contact-section { border-radius: var(--radius); overflow: hidden; }
 .section { padding: clamp(58px, 7vw, 112px) clamp(24px, 5.5vw, 84px); background: var(--paper); }
 
-.topbar { position: sticky; top: 14px; z-index: 100; height: 88px; margin-bottom: 14px; padding: 0 22px 0 30px; display: grid; grid-template-columns: 210px 1fr 210px; align-items: center; background: rgba(249, 248, 244, .93); border: 1px solid rgba(255,255,255,.6); border-radius: 26px; backdrop-filter: blur(18px); box-shadow: 0 12px 30px rgba(34,35,28,.07); }
+.topbar { position: sticky; top: 14px; z-index: 100; height: 88px; margin-bottom: 14px; padding: 0 18px 0 22px; display: grid; grid-template-columns: 180px 1fr 180px; align-items: center; background: rgba(249, 248, 244, .92); border: 1px solid rgba(255,255,255,.72); border-radius: 999px; backdrop-filter: blur(18px); box-shadow: 0 10px 26px rgba(34,35,28,.08); }
 .brand { width: 134px; padding: 0; display: inline-flex; align-items: center; background: none; border: 0; cursor: pointer; }
 .brand img { width: auto; max-height: 52px; object-fit: contain; }
-.main-nav { justify-self: center; display: flex; gap: clamp(22px, 3vw, 44px); }
-.main-nav button { position: relative; padding: 8px 0; background: none; border: 0; cursor: pointer; font-size: 14px; }
-.main-nav button::after { content: ""; position: absolute; left: 0; right: 100%; bottom: 2px; height: 1px; background: currentColor; transition: right .35s var(--ease); }
-.main-nav button:hover::after { right: 0; }
+.main-nav { justify-self: center; display: flex; align-items: center; gap: clamp(18px, 2.4vw, 42px); }
+.main-nav button { position: relative; padding: 10px 0 8px; background: none; border: 0; cursor: pointer; font-size: 14px; font-weight: 500; letter-spacing: 0; color: rgba(37,40,15,.9); }
+.main-nav button::after { content: ""; position: absolute; left: 0; right: 100%; bottom: 2px; height: 1.5px; background: currentColor; transition: right .35s var(--ease); }
+.main-nav button:hover::after, .main-nav button:focus-visible::after { right: 0; }
 .header-actions { display: flex; justify-content: flex-end; align-items: center; gap: 10px; }
-.header-cta { padding: 14px 25px; color: white; background: var(--olive); border: 0; border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer; transition: transform .3s var(--ease), background .3s; }
-.header-cta:hover { transform: translateY(-2px); background: var(--olive-deep); }
+.header-cta { padding: 14px 22px; color: white; background: linear-gradient(180deg, #a0ac35, #8a9b2d); border: 0; border-radius: 999px; font-size: 14px; font-weight: 600; cursor: pointer; box-shadow: 0 8px 20px rgba(92,107,20,.18); transition: transform .3s var(--ease), filter .2s ease; }
+.header-cta:hover { transform: translateY(-1px); filter: brightness(1.02); }
 .menu-toggle { display: none; width: 46px; height: 46px; padding: 0; color: white; background: var(--ink); border: 0; border-radius: 50%; cursor: pointer; }
 
 .hero { min-height: 810px; padding: clamp(44px, 6vw, 90px) clamp(24px, 5.5vw, 84px) 32px; display: flex; flex-direction: column; justify-content: space-between; background-color: #dfe3b5; background-image: linear-gradient(90deg, rgba(223,227,181,.93), rgba(223,227,181,.48) 40%, rgba(223,227,181,.03) 70%), url("/assets/elma-hero-editorial.webp"); background-position: center; background-size: cover; }

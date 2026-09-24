@@ -60,7 +60,6 @@ export default function HomePage({ catalog, catalogLive, whatsapp }) {
           <nav className={`main-nav ${menuOpen ? "is-open" : ""}`} aria-label="Navigation principale">
             <button type="button" onClick={() => navigate("soins")}>Soins</button>
             <button type="button" onClick={() => navigate("clinique")}>La clinique</button>
-            <button type="button" onClick={() => navigate("avis")}>Avis</button>
             <button type="button" onClick={() => navigate("contact")}>Contact</button>
           </nav>
           <div className="header-actions">
@@ -127,14 +126,6 @@ export default function HomePage({ catalog, catalogLive, whatsapp }) {
                 </ul>
               </div>
             </div>
-          </section>
-
-          <section className="section reviews-section" id="avis" aria-labelledby="reviews-title">
-            <div className="section-head reveal">
-              <div><p className="kicker">Avis Google</p><h2 id="reviews-title">La confiance se construit<br />dans chaque détail.</h2></div>
-              <div className="rating-mark"><span>Google</span><strong>★★★★★</strong></div>
-            </div>
-            <div className="integration-placeholder reveal"><Icon>reviews</Icon><div><strong>Avis vérifiés, bientôt ici.</strong><p>Le developer peut brancher le profil Google Business ou un widget d’avis dans ce composant.</p></div></div>
           </section>
 
           <section className="section social-section" aria-labelledby="social-title">
